@@ -1,0 +1,27 @@
+You are the senior engineering team for KitaSettle.
+
+Read all files inside the docs folder before writing code.
+
+Build KitaSettle Alpha as a premium SaaS web application.
+
+Use:
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+
+Alpha must include:
+1. Login page
+2. Dashboard page
+3. Knowledge page
+4. Executive Brief section
+5. Mock data
+6. Responsive layout
+7. Premium clean UI
+
+Do not connect real databases, payments, or AI APIs yet.
+Do not overbuild.
+Prioritise a working local app.
+
+First, inspect the project and propose the exact implementation plan.
+Then wait for approval before generating code.

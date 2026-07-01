@@ -1,0 +1,72 @@
+[
+  {
+    "sourceId": "src-icao",
+    "sourceName": "ICAO",
+    "frequency": "daily",
+    "lastCheckedAt": null,
+    "enabled": true
+  },
+  {
+    "sourceId": "src-caam",
+    "sourceName": "CAAM",
+    "frequency": "daily",
+    "lastCheckedAt": null,
+    "enabled": true
+  },
+  {
+    "sourceId": "src-faa",
+    "sourceName": "FAA",
+    "frequency": "weekly",
+    "lastCheckedAt": null,
+    "enabled": true
+  },
+  {
+    "sourceId": "src-easa",
+    "sourceName": "EASA",
+    "frequency": "weekly",
+    "lastCheckedAt": null,
+    "enabled": true
+  },
+  {
+    "sourceId": "src-iata",
+    "sourceName": "IATA",
+    "frequency": "weekly",
+    "lastCheckedAt": null,
+    "enabled": true
+  },
+  {
+    "sourceId": "src-boeing",
+    "sourceName": "Boeing",
+    "frequency": "monthly",
+    "lastCheckedAt": null,
+    "enabled": true
+  },
+  {
+    "sourceId": "src-hbr",
+    "sourceName": "Harvard Business Review",
+    "frequency": "weekly",
+    "lastCheckedAt": null,
+    "enabled": true
+  },
+  {
+    "sourceId": "src-mckinsey",
+    "sourceName": "McKinsey",
+    "frequency": "monthly",
+    "lastCheckedAt": null,
+    "enabled": true
+  },
+  {
+    "sourceId": "src-cidb",
+    "sourceName": "CIDB",
+    "frequency": "monthly",
+    "lastCheckedAt": null,
+    "enabled": true
+  },
+  {
+    "sourceId": "src-openai",
+    "sourceName": "OpenAI",
+    "frequency": "weekly",
+    "lastCheckedAt": null,
+    "enabled": true
+  }
+]

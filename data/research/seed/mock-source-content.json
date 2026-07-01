@@ -1,0 +1,65 @@
+[
+  {
+    "sourceId": "src-icao",
+    "sourceName": "ICAO",
+    "title": "ICAO RVSM monitoring requirements — Asia-Pacific update",
+    "url": "https://www.icao.int/safety/airnavigation/rvsm-asia-pacific-update",
+    "rawText": "Home | About | Contact | Privacy Policy | Footer links\n\nICAO RVSM Monitoring Update\n\nThe ICAO Asia-Pacific RVSM monitoring group has published revised height-keeping performance thresholds effective Q3 2026. Operators must review training scenarios and briefing packs.\n\nRelated documents | Site map | Cookie policy"
+  },
+  {
+    "sourceId": "src-caam",
+    "sourceName": "CAAM",
+    "title": "CAAM circular — recurrent training compliance windows",
+    "url": "https://www.caam.gov.my/circulars/recurrent-training-2026",
+    "rawText": "Navigation | CAAM Home | Regulations | Footer\n\nCAAM Circular 2026/14 — Recurrent Training Compliance\n\nNew guidance tightens recurrent check documentation and simulator session record retention periods for Malaysia-based operators.\n\nCopyright CAAM | Terms of Use"
+  },
+  {
+    "sourceId": "src-faa",
+    "sourceName": "FAA",
+    "title": "FAA CBTA advisory circular — evidence and instructor standards",
+    "url": "https://www.faa.gov/regulations_policies/advisory_circulars/cbta-evidence-2026",
+    "rawText": "FAA.gov | Menu | Search | Footer\n\nAdvisory Circular — CBTA Evidence Standards\n\nUpdated circular clarifies competency evidence capture, assessor qualifications, and CBTA programme documentation requirements.\n\nPrivacy | Accessibility"
+  },
+  {
+    "sourceId": "src-hbr",
+    "sourceName": "Harvard Business Review",
+    "title": "Executive decision quality under operational pressure",
+    "url": "https://hbr.org/2026/06/executive-decision-quality",
+    "rawText": "Subscribe | Sign In | Footer | HBR Home\n\nExecutive Decision Quality Under Pressure\n\nFramework for founders balancing aviation operations, client proposals, and strategic initiatives without cognitive overload.\n\nHarvard Business Publishing"
+  },
+  {
+    "sourceId": "src-mckinsey",
+    "sourceName": "McKinsey",
+    "title": "McKinsey — aviation workforce readiness in Southeast Asia",
+    "url": "https://www.mckinsey.com/industries/aerospace-and-defense/asean-workforce-2026",
+    "rawText": "McKinsey.com | Insights | Contact | Footer\n\nAviation Workforce Readiness in Southeast Asia\n\nReport highlights skills gaps in maintenance and training leadership roles across ASEAN carriers.\n\nPrivacy policy"
+  },
+  {
+    "sourceId": "src-cidb",
+    "sourceName": "CIDB",
+    "title": "Steelworks proposal — CIDB compliance and scope validation",
+    "url": "https://www.cidb.gov.my/compliance/steelworks-scope-2026",
+    "rawText": "CIDB Portal | Navigation | Footer\n\nConstruction Compliance Review — Steelworks Proposal\n\nPrepared review confirms structural scope, phased delivery milestones, and CIDB registration alignment.\n\nGovernment of Malaysia"
+  },
+  {
+    "sourceId": "src-openai",
+    "sourceName": "OpenAI",
+    "title": "OpenAI — enterprise AI governance patterns for regulated industries",
+    "url": "https://openai.com/index/enterprise-ai-governance-regulated-industries",
+    "rawText": "OpenAI | Products | Research | Footer\n\nEnterprise AI Governance for Regulated Industries\n\nGuidance on safe deployment patterns for aviation, finance, and engineering organisations adopting AI assistants.\n\nTerms | Privacy"
+  },
+  {
+    "sourceId": "src-icao",
+    "sourceName": "ICAO",
+    "title": "ICAO RVSM monitoring requirements — Asia-Pacific update",
+    "url": "https://www.icao.int/safety/airnavigation/rvsm-asia-pacific-update",
+    "rawText": "Duplicate entry for testing — ICAO RVSM monitoring requirements Asia-Pacific update with identical title and URL."
+  },
+  {
+    "sourceId": "src-faa",
+    "sourceName": "FAA",
+    "title": "FAA CBTA guidance update for competency-based training",
+    "url": "https://www.faa.gov/regulations_policies/advisory_circulars/",
+    "rawText": "Footer | Navigation\n\nFAA CBTA guidance update for competency-based training — near-duplicate of existing queue item for duplicate detection testing."
+  }
+]
