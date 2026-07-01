@@ -43,7 +43,28 @@ export function getPublicEnv() {
     appUrl: env.appUrl,
     supabaseUrl: env.supabaseUrl,
     supabaseAnonKey: env.supabaseAnonKey,
+    dataMode: getDataMode(),
   };
+}
+
+const PLACEHOLDER_URL_MARKERS = ["placeholder", "your-project.supabase.co"];
+const PLACEHOLDER_KEY_MARKERS = ["placeholder", "your-anon-key"];
+
+export function isSupabaseConfigured(): boolean {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+
+  if (!url || !anonKey) return false;
+  if (PLACEHOLDER_URL_MARKERS.some((marker) => url.includes(marker))) return false;
+  if (PLACEHOLDER_KEY_MARKERS.some((marker) => anonKey.includes(marker))) return false;
+
+  return true;
+}
+
+export type DataMode = "supabase" | "mock";
+
+export function getDataMode(): DataMode {
+  return isSupabaseConfigured() ? "supabase" : "mock";
 }
 
 export function assertProductionEnv(): void {
@@ -51,13 +72,5 @@ export function assertProductionEnv(): void {
 
   if (!process.env.NEXT_PUBLIC_APP_URL?.trim()?.startsWith("http")) {
     throw new Error("NEXT_PUBLIC_APP_URL must be set for production deployments.");
-  }
-
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()) {
-    throw new Error("NEXT_PUBLIC_SUPABASE_URL must be set for production deployments.");
-  }
-
-  if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()) {
-    throw new Error("NEXT_PUBLIC_SUPABASE_ANON_KEY must be set for production deployments.");
   }
 }

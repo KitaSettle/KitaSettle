@@ -1,7 +1,18 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { isSupabaseConfigured } from "@/lib/config/env";
+import { MOCK_AUTH_COOKIE, MOCK_USER_ID } from "@/lib/auth/constants";
 import { createClient } from "@/lib/supabase/server";
 
 export async function requireAuthUserId(): Promise<string | NextResponse> {
+  if (!isSupabaseConfigured()) {
+    const cookieStore = await cookies();
+    if (!cookieStore.get(MOCK_AUTH_COOKIE)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    return MOCK_USER_ID;
+  }
+
   const supabase = await createClient();
   const {
     data: { user },

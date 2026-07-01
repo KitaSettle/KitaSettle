@@ -3,7 +3,6 @@ import type { ExecutiveBrainData } from "@/lib/types/ui";
 import {
   BRAIN_SEARCH_KEYWORDS,
   STATIC_KNOWLEDGE_CATEGORIES,
-  STATIC_TRUSTED_SOURCES,
 } from "./static-config";
 import {
   mapMemoryItemToUi,
@@ -15,13 +14,15 @@ export async function assembleExecutiveBrainData(
   userId: string,
   repos: Repositories,
 ): Promise<ExecutiveBrainData> {
-  const [knowledge, memoryRows, queueRows, skillsRows, activity] = await Promise.all([
-    repos.knowledge.getAll(userId),
-    repos.memory.getAll(userId),
-    repos.researchQueue.listPending(userId),
-    repos.skills.listSkills(userId),
-    repos.brainActivity.list(userId),
-  ]);
+  const [knowledge, memoryRows, queueRows, skillsRows, activity, trustedSources] =
+    await Promise.all([
+      repos.knowledge.getAll(userId),
+      repos.memory.getAll(userId),
+      repos.researchQueue.listPending(userId),
+      repos.skills.listSkills(userId),
+      repos.brainActivity.list(userId),
+      repos.trustedSources.list(),
+    ]);
 
   const categories = STATIC_KNOWLEDGE_CATEGORIES.map((category) => ({
     id: category.id,
@@ -43,12 +44,12 @@ export async function assembleExecutiveBrainData(
       knowledgeItems: knowledge.length,
       executiveMemories: memory.length,
       skills: skills.filter((s) => s.status === "active").length,
-      trustedSources: STATIC_TRUSTED_SOURCES.length,
+      trustedSources: trustedSources.length,
       researchWaiting: researchQueue.length,
       brainHealth: Math.min(99, 70 + Math.min(knowledge.length, 25)),
       estimatedTimeSavedHours: 14.5,
     },
-    trustedSources: STATIC_TRUSTED_SOURCES.map((source) => ({
+    trustedSources: trustedSources.map((source) => ({
       id: source.id,
       name: source.name,
       category: source.category,

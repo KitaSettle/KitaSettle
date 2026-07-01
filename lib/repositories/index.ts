@@ -25,6 +25,10 @@ import {
   type BrainActivityRepository,
   type UserRepository,
 } from "./user-repository";
+import {
+  SupabaseTrustedSourceRepository,
+  type TrustedSourceRepository,
+} from "./trusted-source-repository";
 
 export interface Repositories {
   users: UserRepository;
@@ -34,6 +38,7 @@ export interface Repositories {
   executiveBriefs: ExecutiveBriefRepository;
   skills: SkillRepository;
   brainActivity: BrainActivityRepository;
+  trustedSources: TrustedSourceRepository;
 }
 
 export function createRepositories(client: SupabaseClient): Repositories {
@@ -45,6 +50,7 @@ export function createRepositories(client: SupabaseClient): Repositories {
     executiveBriefs: new SupabaseExecutiveBriefRepository(client),
     skills: new SupabaseSkillRepository(client),
     brainActivity: new SupabaseBrainActivityRepository(client),
+    trustedSources: new SupabaseTrustedSourceRepository(client),
   };
 }
 
@@ -56,4 +62,5 @@ export type {
   SkillRepository,
   UserRepository,
   BrainActivityRepository,
+  TrustedSourceRepository,
 };

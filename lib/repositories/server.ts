@@ -1,7 +1,8 @@
-import { createClient } from "@/lib/supabase/server";
-import { createRepositories, type Repositories } from "./index";
+import { resolveRepositories } from "./factory";
+import type { Repositories } from "./index";
 
 export async function getServerRepositories(): Promise<Repositories> {
-  const client = await createClient();
-  return createRepositories(client);
+  return resolveRepositories();
 }
+
+export type { Repositories };

@@ -93,3 +93,15 @@ export interface DbBrainActivity {
   target: string;
   created_at: string;
 }
+
+export interface DbTrustedSource {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  search_tags: string[];
+  url: string;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
