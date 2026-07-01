@@ -11,6 +11,7 @@ export interface MemoryItem {
   importance: Importance;
   relatedKnowledge: EntityId[];
   status: MemoryStatus;
+  searchTags?: string[];
 }
 
 export interface MemorySearchQuery {

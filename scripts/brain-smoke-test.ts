@@ -1,17 +1,28 @@
 /**
  * Sprint 4 — Executive Brain backend smoke test.
- * Run: npx tsx scripts/brain-smoke-test.ts
+ * Run: npm run test:brain
  */
-import { brainOrchestrator } from "../lib/brain";
-import { knowledgeEngine } from "../lib/knowledge";
-import { memoryEngine } from "../lib/memory";
-import { skillEngine } from "../lib/skills";
-import { researchQueueService } from "../lib/brain/research-queue-service";
+import { loadLocalEnv } from "./load-env";
+import { getSystemUserId } from "../lib/system-user";
+import { createBrainOrchestrator } from "../lib/brain/brain-orchestrator";
+import { createKnowledgeEngine } from "../lib/knowledge/knowledge-engine";
+import { createMemoryEngine } from "../lib/memory/memory-engine";
+import { createSkillEngine } from "../lib/skills/skill-engine";
+import { createResearchQueueService } from "../lib/brain/research-queue-service";
 import { trustedSourceRegistry } from "../lib/brain/source-registry-service";
 import { crawlerService } from "../lib/crawler";
 
+loadLocalEnv();
+
 async function main() {
   console.log("=== KitaSettle Executive Brain Smoke Test ===\n");
+
+  const userId = await getSystemUserId();
+  const knowledgeEngine = await createKnowledgeEngine(userId);
+  const memoryEngine = await createMemoryEngine(userId);
+  const skillEngine = await createSkillEngine(userId);
+  const researchQueueService = await createResearchQueueService(userId);
+  const brainOrchestrator = await createBrainOrchestrator(userId);
 
   const knowledge = await knowledgeEngine.getAll();
   console.log(`Knowledge Engine: ${knowledge.length} items`);
@@ -33,11 +44,13 @@ async function main() {
   const ready = await researchQueueService.listByStatus("Ready");
   console.log(`  Ready: ${ready.length}`);
 
-  const skillResult = await skillEngine.execute({
-    skillId: "skill-summarise-regulation",
-    input: { knowledgeIds: ["know-2"] },
-  });
-  console.log(`Skill execute (mock): ${skillResult.output.message}`);
+  if (skills[0]) {
+    const skillResult = await skillEngine.execute({
+      skillId: skills[0].id,
+      input: { knowledgeIds: knowledge.slice(0, 1).map((item) => item.id) },
+    });
+    console.log(`Skill execute: ${skillResult.output.message}`);
+  }
 
   const brief = await brainOrchestrator.generateDailyBrief();
   console.log(`\nExecutive Brief:`);
@@ -52,7 +65,7 @@ async function main() {
   const crawlResult = await crawlerService.run(job.id);
   console.log(`\nCrawler (mock): ${crawlResult.itemsDiscovered} items from ${job.sourceName}`);
 
-  console.log("\n=== All mock services responded successfully ===");
+  console.log("\n=== Supabase-backed services responded successfully ===");
 }
 
 main().catch((error) => {

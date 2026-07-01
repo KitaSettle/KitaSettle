@@ -1,1 +1,5 @@
-export { MockKnowledgeWriter, knowledgeWriter } from "./knowledge-writer";
+export {
+  KnowledgeWriterImpl,
+  createKnowledgeWriter,
+  createKnowledgeWriterForSystem,
+} from "./knowledge-writer";

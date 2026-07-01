@@ -6,7 +6,7 @@ export { ClaudeProvider } from "./ClaudeProvider";
 export { GeminiProvider } from "./GeminiProvider";
 export {
   ExecutiveBriefHistoryStore,
-  executiveBriefHistoryStore,
+  createExecutiveBriefHistoryStore,
 } from "./brief-history-store";
 export {
   GenerateBriefAction,

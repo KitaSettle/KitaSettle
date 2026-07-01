@@ -1,4 +1,4 @@
 export {
   LiveResearchPipelineService,
-  liveResearchPipeline,
+  createLiveResearchPipeline,
 } from "./live-research-pipeline";

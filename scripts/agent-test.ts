@@ -2,13 +2,18 @@
  * Sprint 7 — Multi-Agent Executive Brain test.
  * Run: npm run agent:test
  */
+import { loadLocalEnv } from "./load-env";
+import { getSystemUserId } from "../lib/system-user";
 import { createBrainServices } from "../lib/brain/create-brain-services";
 import { createAgentOrchestrator } from "../lib/agents";
+
+loadLocalEnv();
 
 async function main() {
   console.log("=== KitaSettle Multi-Agent Executive Brain Test ===\n");
 
-  const services = createBrainServices();
+  const userId = await getSystemUserId();
+  const services = await createBrainServices(userId);
   const orchestrator = createAgentOrchestrator(services);
   const agents = orchestrator.listAgents();
 

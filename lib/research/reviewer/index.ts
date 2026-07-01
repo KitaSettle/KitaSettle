@@ -1,1 +1,1 @@
-export { MockResearchReviewer, researchReviewer } from "./research-reviewer";
+export { ResearchReviewerImpl, createResearchReviewer } from "./research-reviewer";

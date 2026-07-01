@@ -4,71 +4,52 @@ import type {
   KnowledgeSearchQuery,
 } from "@/lib/types/knowledge";
 import type { EntityId } from "@/lib/types/common";
-import { createId, matchesAnyField, nowIso } from "@/lib/utils";
-import { mockKnowledgeItems } from "./mock-knowledge-store";
+import { nowIso } from "@/lib/utils";
+import type { KnowledgeRepository } from "@/lib/repositories/knowledge-repository";
+import type { Repositories } from "@/lib/repositories";
+import { getScriptRepositories } from "@/lib/repositories/script";
 
-export class MockKnowledgeEngine implements KnowledgeEngine {
-  private items: KnowledgeItem[];
+export class SupabaseKnowledgeEngine implements KnowledgeEngine {
+  constructor(
+    private repository: KnowledgeRepository,
+    private userId: string,
+  ) {}
 
-  constructor(seed: KnowledgeItem[] = mockKnowledgeItems) {
-    this.items = [...seed];
+  getAll(): Promise<KnowledgeItem[]> {
+    return this.repository.getAll(this.userId);
   }
 
-  async getAll(): Promise<KnowledgeItem[]> {
-    return [...this.items];
+  getById(id: EntityId): Promise<KnowledgeItem | null> {
+    return this.repository.getById(this.userId, id);
   }
 
-  async getById(id: EntityId): Promise<KnowledgeItem | null> {
-    return this.items.find((item) => item.id === id) ?? null;
+  search(query: KnowledgeSearchQuery): Promise<KnowledgeItem[]> {
+    return this.repository.search(this.userId, query);
   }
 
-  async search(query: KnowledgeSearchQuery): Promise<KnowledgeItem[]> {
-    return this.items.filter((item) => {
-      if (query.category && item.category !== query.category) return false;
-      if (query.subcategory && item.subcategory !== query.subcategory) return false;
-      if (query.source && item.source !== query.source) return false;
-      if (query.importance && item.importance !== query.importance) return false;
-      if (query.tags?.length && !query.tags.some((tag) => item.tags.includes(tag))) {
-        return false;
-      }
-
-      return matchesAnyField(
-        query.query,
-        [item.title, item.summary, item.content, item.source, item.category, item.subcategory],
-        item.tags,
-      );
+  create(item: Omit<KnowledgeItem, "id">): Promise<KnowledgeItem> {
+    return this.repository.create(this.userId, {
+      ...item,
+      lastReviewed: item.lastReviewed ?? nowIso(),
     });
   }
 
-  async create(item: Omit<KnowledgeItem, "id">): Promise<KnowledgeItem> {
-    const created: KnowledgeItem = {
-      ...item,
-      id: createId("know"),
-      lastReviewed: nowIso(),
-    };
-    this.items.unshift(created);
-    return created;
-  }
-
-  async update(id: EntityId, patch: Partial<KnowledgeItem>): Promise<KnowledgeItem | null> {
-    const index = this.items.findIndex((item) => item.id === id);
-    if (index === -1) return null;
-
-    const updated: KnowledgeItem = {
-      ...this.items[index],
+  update(id: EntityId, patch: Partial<KnowledgeItem>): Promise<KnowledgeItem | null> {
+    return this.repository.update(this.userId, id, {
       ...patch,
-      id,
-      lastReviewed: nowIso(),
-    };
-    this.items[index] = updated;
-    return updated;
+      lastReviewed: patch.lastReviewed ?? nowIso(),
+    });
   }
 
-  async delete(id: EntityId): Promise<boolean> {
-    const before = this.items.length;
-    this.items = this.items.filter((item) => item.id !== id);
-    return this.items.length < before;
+  delete(id: EntityId): Promise<boolean> {
+    return this.repository.delete(this.userId, id);
   }
 }
 
-export const knowledgeEngine = new MockKnowledgeEngine();
+export async function createKnowledgeEngine(
+  userId: string,
+  repos?: Repositories,
+): Promise<SupabaseKnowledgeEngine> {
+  const repositories = repos ?? getScriptRepositories();
+  return new SupabaseKnowledgeEngine(repositories.knowledge, userId);
+}

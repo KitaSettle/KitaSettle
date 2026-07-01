@@ -1,62 +1,44 @@
-import type {
-  MemoryEngine,
-  MemoryItem,
-  MemorySearchQuery,
-} from "@/lib/types/memory";
+import type { MemoryEngine, MemoryItem, MemorySearchQuery } from "@/lib/types/memory";
 import type { EntityId } from "@/lib/types/common";
-import { createId, matchesAnyField, nowIso } from "@/lib/utils";
-import { mockMemoryItems } from "./mock-memory-store";
+import type { MemoryRepository } from "@/lib/repositories/memory-repository";
+import type { Repositories } from "@/lib/repositories";
+import { getScriptRepositories } from "@/lib/repositories/script";
 
-export class MockMemoryEngine implements MemoryEngine {
-  private items: MemoryItem[];
+export class SupabaseMemoryEngine implements MemoryEngine {
+  constructor(
+    private repository: MemoryRepository,
+    private userId: string,
+  ) {}
 
-  constructor(seed: MemoryItem[] = mockMemoryItems) {
-    this.items = [...seed];
+  getAll(): Promise<MemoryItem[]> {
+    return this.repository.getAll(this.userId);
   }
 
-  async getAll(): Promise<MemoryItem[]> {
-    return [...this.items];
+  getById(id: EntityId): Promise<MemoryItem | null> {
+    return this.repository.getById(this.userId, id);
   }
 
-  async getById(id: EntityId): Promise<MemoryItem | null> {
-    return this.items.find((item) => item.id === id) ?? null;
+  search(query: MemorySearchQuery): Promise<MemoryItem[]> {
+    return this.repository.search(this.userId, query);
   }
 
-  async search(query: MemorySearchQuery): Promise<MemoryItem[]> {
-    return this.items.filter((item) => {
-      if (query.category && item.category !== query.category) return false;
-      if (query.importance && item.importance !== query.importance) return false;
-      if (query.status && item.status !== query.status) return false;
-
-      return matchesAnyField(
-        query.query,
-        [item.title, item.description, item.category],
-      );
-    });
+  create(item: Omit<MemoryItem, "id" | "createdAt">, searchTags?: string[]): Promise<MemoryItem> {
+    return this.repository.create(this.userId, item, searchTags);
   }
 
-  async create(item: Omit<MemoryItem, "id" | "createdAt">): Promise<MemoryItem> {
-    const created: MemoryItem = {
-      ...item,
-      id: createId("mem"),
-      createdAt: nowIso(),
-    };
-    this.items.unshift(created);
-    return created;
+  update(id: EntityId, patch: Partial<MemoryItem>): Promise<MemoryItem | null> {
+    return this.repository.update(this.userId, id, patch);
   }
 
-  async update(id: EntityId, patch: Partial<MemoryItem>): Promise<MemoryItem | null> {
-    const index = this.items.findIndex((item) => item.id === id);
-    if (index === -1) return null;
-
-    const updated = { ...this.items[index], ...patch, id };
-    this.items[index] = updated;
-    return updated;
-  }
-
-  async archive(id: EntityId): Promise<MemoryItem | null> {
-    return this.update(id, { status: "archived" });
+  archive(id: EntityId): Promise<MemoryItem | null> {
+    return this.repository.archive(this.userId, id);
   }
 }
 
-export const memoryEngine = new MockMemoryEngine();
+export async function createMemoryEngine(
+  userId: string,
+  repos?: Repositories,
+): Promise<SupabaseMemoryEngine> {
+  const repositories = repos ?? getScriptRepositories();
+  return new SupabaseMemoryEngine(repositories.memory, userId);
+}

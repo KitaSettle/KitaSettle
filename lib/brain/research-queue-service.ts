@@ -4,66 +4,51 @@ import type {
   ResearchQueueStatus,
 } from "@/lib/types/research";
 import type { EntityId } from "@/lib/types/common";
-import { createId, nowIso } from "@/lib/utils";
-import { mockResearchQueue } from "./mock-research-queue-store";
+import type { ResearchQueueRepository } from "@/lib/repositories/research-queue-repository";
+import type { Repositories } from "@/lib/repositories";
+import { getScriptRepositories } from "@/lib/repositories/script";
 
-export class MockResearchQueueService implements ResearchQueueService {
-  private queue: ResearchQueueRecord[];
+export class SupabaseResearchQueueService implements ResearchQueueService {
+  constructor(
+    private repository: ResearchQueueRepository,
+    private userId: string,
+  ) {}
 
-  constructor(seed: ResearchQueueRecord[] = mockResearchQueue) {
-    this.queue = [...seed];
+  list(): Promise<ResearchQueueRecord[]> {
+    return this.repository.list(this.userId);
   }
 
-  async list(): Promise<ResearchQueueRecord[]> {
-    return [...this.queue];
+  getById(id: EntityId): Promise<ResearchQueueRecord | null> {
+    return this.repository.getById(this.userId, id);
   }
 
-  async getById(id: EntityId): Promise<ResearchQueueRecord | null> {
-    return this.queue.find((item) => item.id === id) ?? null;
+  listByStatus(status: ResearchQueueStatus): Promise<ResearchQueueRecord[]> {
+    return this.repository.listByStatus(this.userId, status);
   }
 
-  async listByStatus(status: ResearchQueueStatus): Promise<ResearchQueueRecord[]> {
-    return this.queue.filter((item) => item.status === status);
-  }
-
-  async enqueue(
+  enqueue(
     item: Omit<ResearchQueueRecord, "id" | "queuedAt" | "updatedAt" | "status">,
   ): Promise<ResearchQueueRecord> {
-    const timestamp = nowIso();
-    const created: ResearchQueueRecord = {
-      ...item,
-      id: createId("rq"),
-      status: "Queued",
-      queuedAt: timestamp,
-      updatedAt: timestamp,
-    };
-    this.queue.unshift(created);
-    return created;
+    return this.repository.enqueue(this.userId, item);
   }
 
-  async updateStatus(
-    id: EntityId,
-    status: ResearchQueueStatus,
-  ): Promise<ResearchQueueRecord | null> {
-    const index = this.queue.findIndex((item) => item.id === id);
-    if (index === -1) return null;
-
-    const updated: ResearchQueueRecord = {
-      ...this.queue[index],
-      status,
-      updatedAt: nowIso(),
-    };
-    this.queue[index] = updated;
-    return updated;
+  updateStatus(id: EntityId, status: ResearchQueueStatus): Promise<ResearchQueueRecord | null> {
+    return this.repository.updateStatus(this.userId, id, status);
   }
 
-  async approve(id: EntityId): Promise<ResearchQueueRecord | null> {
-    return this.updateStatus(id, "Approved");
+  approve(id: EntityId): Promise<ResearchQueueRecord | null> {
+    return this.repository.approve(this.userId, id);
   }
 
-  async reject(id: EntityId): Promise<ResearchQueueRecord | null> {
-    return this.updateStatus(id, "Rejected");
+  reject(id: EntityId): Promise<ResearchQueueRecord | null> {
+    return this.repository.reject(this.userId, id);
   }
 }
 
-export const researchQueueService = new MockResearchQueueService();
+export async function createResearchQueueService(
+  userId: string,
+  repos?: Repositories,
+): Promise<SupabaseResearchQueueService> {
+  const repositories = repos ?? getScriptRepositories();
+  return new SupabaseResearchQueueService(repositories.researchQueue, userId);
+}

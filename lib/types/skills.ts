@@ -7,6 +7,7 @@ export interface SkillDefinition {
   input: string;
   output: string;
   enabled: boolean;
+  searchTags?: string[];
 }
 
 export interface SkillExecutionRequest {

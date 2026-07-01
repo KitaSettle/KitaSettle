@@ -6,25 +6,26 @@ import type {
 } from "@/lib/types/skills";
 import type { EntityId } from "@/lib/types/common";
 import { nowIso } from "@/lib/utils";
-import { skillRegistry } from "./skill-registry";
+import type { SkillRepository } from "@/lib/repositories/skill-repository";
+import type { Repositories } from "@/lib/repositories";
+import { getScriptRepositories } from "@/lib/repositories/script";
 
-export class MockSkillEngine implements SkillEngine {
-  private skills: SkillDefinition[];
+export class SupabaseSkillEngine implements SkillEngine {
+  constructor(
+    private repository: SkillRepository,
+    private userId: string,
+  ) {}
 
-  constructor(seed: SkillDefinition[] = skillRegistry) {
-    this.skills = [...seed];
+  listSkills(): Promise<SkillDefinition[]> {
+    return this.repository.listSkills(this.userId);
   }
 
-  async listSkills(): Promise<SkillDefinition[]> {
-    return [...this.skills];
+  getSkill(id: EntityId): Promise<SkillDefinition | null> {
+    return this.repository.getSkill(this.userId, id);
   }
 
-  async getSkill(id: EntityId): Promise<SkillDefinition | null> {
-    return this.skills.find((skill) => skill.id === id) ?? null;
-  }
-
-  async getEnabledSkills(): Promise<SkillDefinition[]> {
-    return this.skills.filter((skill) => skill.enabled);
+  getEnabledSkills(): Promise<SkillDefinition[]> {
+    return this.repository.getEnabledSkills(this.userId);
   }
 
   async execute(request: SkillExecutionRequest): Promise<SkillExecutionResult> {
@@ -42,7 +43,7 @@ export class MockSkillEngine implements SkillEngine {
       skillId: skill.id,
       output: {
         skill: skill.name,
-        message: `Mock execution complete for ${skill.name}. Real execution will be wired in a later sprint.`,
+        message: `Skill ${skill.name} registered. AI execution will be wired in a later sprint.`,
         inputReceived: request.input,
       },
       executedAt: nowIso(),
@@ -51,4 +52,10 @@ export class MockSkillEngine implements SkillEngine {
   }
 }
 
-export const skillEngine = new MockSkillEngine();
+export async function createSkillEngine(
+  userId: string,
+  repos?: Repositories,
+): Promise<SupabaseSkillEngine> {
+  const repositories = repos ?? getScriptRepositories();
+  return new SupabaseSkillEngine(repositories.skills, userId);
+}

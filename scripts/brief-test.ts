@@ -2,16 +2,19 @@
  * Sprint 6 — Generate Executive Brief test.
  * Run: npm run brief:test
  */
+import { loadLocalEnv } from "./load-env";
+import { getSystemUserId } from "../lib/system-user";
 import { createBrainServices } from "../lib/brain/create-brain-services";
 import { createGenerateBriefAction } from "../lib/ai/generate-brief-action";
-import { executiveBriefHistoryStore } from "../lib/ai/brief-history-store";
+import { createExecutiveBriefHistoryStore } from "../lib/ai/brief-history-store";
+
+loadLocalEnv();
 
 async function main() {
   console.log("=== KitaSettle Executive Brief Test ===\n");
 
-  await executiveBriefHistoryStore.reset();
-
-  const services = createBrainServices();
+  const userId = await getSystemUserId();
+  const services = await createBrainServices(userId);
   const [research, knowledge, memory] = await Promise.all([
     services.researchQueue.list(),
     services.knowledge.getAll(),
@@ -22,8 +25,9 @@ async function main() {
   console.log(`Research reviewed:  ${research.length} items`);
   console.log(`Memory loaded:      ${memory.length} items`);
 
-  const brief = await createGenerateBriefAction(services).execute();
-  const history = await executiveBriefHistoryStore.getHistory();
+  const brief = await createGenerateBriefAction(services, userId).execute();
+  const historyStore = await createExecutiveBriefHistoryStore(userId);
+  const history = await historyStore.getHistory();
 
   console.log("\nBrief generated");
   console.log(`Reading time saved: ${brief.estimatedReadingSaved}`);

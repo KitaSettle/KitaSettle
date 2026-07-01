@@ -2,28 +2,54 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { isAuthenticated, login } from "@/lib/auth";
-import { mockUser } from "@/data/mockUser";
+import {
+  isAuthenticated,
+  signInWithEmail,
+  signInWithOAuth,
+  signUpWithEmail,
+} from "@/lib/auth";
 import { Button } from "@/components/ui/Button";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState(mockUser.email);
+  const [email, setEmail] = useState("dan@kitasettle.com");
   const [password, setPassword] = useState("");
   const [ready, setReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated()) {
-      router.replace("/dashboard");
-      return;
-    }
-    setReady(true);
+    void isAuthenticated().then((authenticated: boolean) => {
+      if (authenticated) {
+        router.replace("/dashboard");
+        return;
+      }
+      setReady(true);
+    });
   }, [router]);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    login();
+    setLoading(true);
+    setError(null);
+
+    const signInResult = await signInWithEmail(email, password);
+    if (signInResult.error) {
+      const signUpResult = await signUpWithEmail(email, password);
+      if (signUpResult.error) {
+        setError(signUpResult.error.message);
+        setLoading(false);
+        return;
+      }
+    }
+
     router.push("/dashboard");
+  }
+
+  async function handleOAuth(provider: "google" | "github") {
+    setError(null);
+    const { error: oauthError } = await signInWithOAuth(provider);
+    if (oauthError) setError(oauthError.message);
   }
 
   if (!ready) {
@@ -84,18 +110,43 @@ export default function LoginPage() {
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 className="mt-2 w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-foreground outline-none transition-shadow focus:border-accent focus:ring-2 focus:ring-accent/20"
-                placeholder="Enter any password"
+                placeholder="Enter your password"
                 required
               />
             </div>
 
-            <Button type="submit" fullWidth>
-              Sign in
+            {error && (
+              <p className="text-sm text-red-600" role="alert">
+                {error}
+              </p>
+            )}
+
+            <Button type="submit" fullWidth disabled={loading}>
+              {loading ? "Signing in..." : "Sign in"}
             </Button>
           </form>
 
+          <div className="mt-4 space-y-3">
+            <Button
+              type="button"
+              variant="ghost"
+              fullWidth
+              onClick={() => void handleOAuth("google")}
+            >
+              Continue with Google
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              fullWidth
+              onClick={() => void handleOAuth("github")}
+            >
+              Continue with GitHub
+            </Button>
+          </div>
+
           <p className="mt-6 text-center text-xs text-muted">
-            Alpha preview — any credentials will sign you in.
+            New accounts are created automatically on first sign-in.
           </p>
         </div>
       </div>

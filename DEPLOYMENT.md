@@ -42,6 +42,10 @@ vercel --prod
 | `NEXT_PUBLIC_APP_NAME` | Yes | `KitaSettle Alpha` | Application title |
 | `NEXT_PUBLIC_APP_ENV` | Yes | `alpha` | Environment label |
 | `NEXT_PUBLIC_APP_URL` | Yes (production) | `https://your-app.vercel.app` | Public site URL |
+| `NEXT_PUBLIC_SUPABASE_URL` | Yes | `https://xxx.supabase.co` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | `eyJ...` | Supabase anon/public key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Yes (server) | `eyJ...` | Service role key for scripts/admin |
+| `SUPABASE_SYSTEM_USER_ID` | Optional | UUID | Auth user UUID for CLI test scripts |
 | `NODE_ENV` | Auto | `production` | Set by Vercel automatically |
 
 Optional future keys (not used in Alpha):
@@ -49,6 +53,21 @@ Optional future keys (not used in Alpha):
 - `OPENAI_API_KEY`
 - `ANTHROPIC_API_KEY`
 - `GOOGLE_AI_API_KEY`
+
+## Supabase setup
+
+1. Create a project at [supabase.com](https://supabase.com).
+2. Run migrations from `supabase/migrations/` (SQL editor or Supabase CLI).
+3. Enable Auth providers under **Authentication → Providers**:
+   - Email (enabled by default)
+   - Google
+   - GitHub
+4. Set **Site URL** and redirect URLs to include:
+   - `http://localhost:3000/api/auth/callback`
+   - `https://your-app.vercel.app/api/auth/callback`
+5. Copy project URL and keys into Vercel env vars.
+
+New users receive seeded knowledge, memory, research queue, and executive brief data automatically via the `handle_new_user` trigger.
 
 Copy `.env.example` to `.env.local` for local development:
 

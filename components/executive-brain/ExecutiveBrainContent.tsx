@@ -7,7 +7,7 @@ import type {
   ExecutiveMemoryItem,
   ResearchQueueItem,
 } from "@/lib/types";
-import { BRAIN_SEARCH_KEYWORDS } from "@/data/mockExecutiveBrain";
+import { BRAIN_SEARCH_KEYWORDS } from "@/lib/executive-brain/static-config";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { SectionCard } from "@/components/dashboard/SectionCard";
@@ -79,31 +79,61 @@ export function ExecutiveBrainContent({ data }: ExecutiveBrainContentProps) {
     ]);
   }
 
-  function handleApprove(id: string) {
-    const item = queue.find((entry) => entry.id === id);
-    if (!item) return;
+  async function persistResearchAction(
+    id: string,
+    action: "approve" | "reject" | "save-memory",
+  ) {
+    const response = await fetch(`/api/research-queue/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action }),
+    });
 
-    setQueue((current) => current.filter((entry) => entry.id !== id));
-    setMemory((current) => [researchToMemory(item), ...current]);
-    addActivity("Saved to Executive Brain", item.title);
-    setToastMessage("Saved into Executive Brain.");
+    if (!response.ok) {
+      throw new Error("Failed to save research action");
+    }
   }
 
-  function handleReject(id: string) {
+  async function handleApprove(id: string) {
     const item = queue.find((entry) => entry.id === id);
     if (!item) return;
 
-    setQueue((current) => current.filter((entry) => entry.id !== id));
-    addActivity("Discarded research", item.title);
-    setToastMessage("Research discarded.");
+    try {
+      await persistResearchAction(id, "approve");
+      setQueue((current) => current.filter((entry) => entry.id !== id));
+      setMemory((current) => [researchToMemory(item), ...current]);
+      addActivity("Saved to Executive Brain", item.title);
+      setToastMessage("Saved into Executive Brain.");
+    } catch {
+      setToastMessage("Could not save approval. Try again.");
+    }
   }
 
-  function handleSaveToMemory(id: string) {
+  async function handleReject(id: string) {
     const item = queue.find((entry) => entry.id === id);
     if (!item) return;
 
-    setMemory((current) => [researchToMemory(item), ...current]);
-    addActivity("Saved to memory", item.title);
+    try {
+      await persistResearchAction(id, "reject");
+      setQueue((current) => current.filter((entry) => entry.id !== id));
+      addActivity("Discarded research", item.title);
+      setToastMessage("Research discarded.");
+    } catch {
+      setToastMessage("Could not discard research. Try again.");
+    }
+  }
+
+  async function handleSaveToMemory(id: string) {
+    const item = queue.find((entry) => entry.id === id);
+    if (!item) return;
+
+    try {
+      await persistResearchAction(id, "save-memory");
+      setMemory((current) => [researchToMemory(item), ...current]);
+      addActivity("Saved to memory", item.title);
+    } catch {
+      setToastMessage("Could not save to memory. Try again.");
+    }
   }
 
   const filteredCategories = useMemo(() => {

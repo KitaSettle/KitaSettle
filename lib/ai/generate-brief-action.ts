@@ -2,7 +2,7 @@ import type { BrainServices } from "@/lib/types/brain";
 import type { ExecutiveBriefOutput } from "@/lib/types/executive";
 import type { AIExecutiveBriefOutput } from "./types";
 import { mockCalendarEvents, mockExecutiveTasks } from "@/lib/executive/mock-executive-inputs";
-import { executiveBriefHistoryStore } from "./brief-history-store";
+import { createExecutiveBriefHistoryStore } from "./brief-history-store";
 
 export function mapAIBriefToExecutiveBriefOutput(
   brief: AIExecutiveBriefOutput,
@@ -27,7 +27,10 @@ export function mapAIBriefToExecutiveBriefOutput(
 }
 
 export class GenerateBriefAction {
-  constructor(private services: BrainServices) {}
+  constructor(
+    private services: BrainServices,
+    private userId: string,
+  ) {}
 
   async execute(): Promise<ExecutiveBriefOutput> {
     const [research, knowledge, memory] = await Promise.all([
@@ -44,12 +47,16 @@ export class GenerateBriefAction {
       tasks: mockExecutiveTasks,
     });
 
-    await executiveBriefHistoryStore.saveBrief(aiBrief);
+    const historyStore = await createExecutiveBriefHistoryStore(this.userId);
+    await historyStore.saveBrief(aiBrief);
 
     return mapAIBriefToExecutiveBriefOutput(aiBrief);
   }
 }
 
-export function createGenerateBriefAction(services: BrainServices): GenerateBriefAction {
-  return new GenerateBriefAction(services);
+export function createGenerateBriefAction(
+  services: BrainServices,
+  userId: string,
+): GenerateBriefAction {
+  return new GenerateBriefAction(services, userId);
 }

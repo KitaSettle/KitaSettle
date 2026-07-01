@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { isAuthenticated, logout } from "@/lib/auth";
+import { isAuthenticated, signOut } from "@/lib/auth";
 import { Button } from "@/components/ui/Button";
 import { MobileNav } from "./MobileNav";
 import { Sidebar } from "./Sidebar";
@@ -16,16 +16,19 @@ export function AppShell({ children }: AppShellProps) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated()) {
-      router.replace("/login");
-      return;
-    }
-    setReady(true);
+    void isAuthenticated().then((authenticated: boolean) => {
+      if (!authenticated) {
+        router.replace("/login");
+        return;
+      }
+      setReady(true);
+    });
   }, [router]);
 
   function handleLogout() {
-    logout();
-    router.replace("/login");
+    void signOut().then(() => {
+      router.replace("/login");
+    });
   }
 
   if (!ready) {

@@ -3,21 +3,26 @@ import type {
   LiveResearchPipeline,
   LiveResearchPipelineResult,
   ResearchFinding,
+  ResearchReviewer,
 } from "@/lib/types/live-research";
 import type { LocalJsonStore } from "@/lib/types/live-research";
+import { createResearchQueueService } from "@/lib/brain/research-queue-service";
+import { getSystemUserId } from "@/lib/system-user";
 import { createId, nowIso } from "@/lib/utils";
-import { mockResearchQueue } from "@/lib/brain/mock-research-queue-store";
 import { sourceScheduler } from "../scheduler/source-scheduler";
 import { sourceFetcher } from "../fetcher/mock-source-fetcher";
 import { documentExtractor } from "../extractor/document-extractor";
 import { duplicateDetector } from "../duplicate/duplicate-detector";
 import { buildClassifiedContent, contentClassifier } from "../classifier/content-classifier";
 import { executiveSummariser } from "../summariser/executive-summariser";
-import { researchReviewer } from "../reviewer/research-reviewer";
+import { createResearchReviewer } from "../reviewer/research-reviewer";
 import { localJsonStore } from "../store/local-json-store";
 
 export class LiveResearchPipelineService implements LiveResearchPipeline {
-  constructor(private store: LocalJsonStore = localJsonStore) {}
+  constructor(
+    private store: LocalJsonStore,
+    private reviewer: ResearchReviewer,
+  ) {}
 
   async run(asOf: Date = new Date()): Promise<LiveResearchPipelineResult> {
     await this.store.resetRuntimeStore();
@@ -38,9 +43,14 @@ export class LiveResearchPipelineService implements LiveResearchPipeline {
     fetchedStore.lastUpdated = nowIso();
     await this.store.saveFetchedContent(fetchedStore);
 
-    const existingComparable = [
-      ...mockResearchQueue.map((item) => ({ title: item.title, url: item.sourceUrl })),
-    ];
+    const userId = await getSystemUserId();
+    const researchQueue = await createResearchQueueService(userId);
+    const existingQueue = await researchQueue.list();
+
+    const existingComparable = existingQueue.map((item) => ({
+      title: item.title,
+      url: item.sourceUrl,
+    }));
 
     for (const document of fetchedDocuments) {
       const extracted = documentExtractor.extract(document);
@@ -86,11 +96,11 @@ export class LiveResearchPipelineService implements LiveResearchPipeline {
         updatedAt: timestamp,
       };
 
-      const reviewed = await researchReviewer.submitForReview(finding);
+      const reviewed = await this.reviewer.submitForReview(finding);
       createdFindings.push(reviewed);
     }
 
-    const readyFindings = await researchReviewer.listReadyForApproval();
+    const readyFindings = await this.reviewer.listReadyForApproval();
 
     return {
       sourcesChecked: dueSources.length,
@@ -104,4 +114,7 @@ export class LiveResearchPipelineService implements LiveResearchPipeline {
   }
 }
 
-export const liveResearchPipeline = new LiveResearchPipelineService();
+export async function createLiveResearchPipeline(): Promise<LiveResearchPipelineService> {
+  const reviewer = await createResearchReviewer();
+  return new LiveResearchPipelineService(localJsonStore, reviewer);
+}

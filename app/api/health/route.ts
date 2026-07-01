@@ -14,17 +14,17 @@ export async function GET() {
     modules: {
       ui: "operational",
       executiveBrain: "operational",
-      knowledgeEngine: "mock",
-      memoryEngine: "mock",
-      researchPipeline: "mock",
+      knowledgeEngine: "supabase",
+      memoryEngine: "supabase",
+      researchPipeline: "supabase",
       aiProvider: "mock",
       multiAgent: "mock",
+      auth: "supabase",
     },
     limitations: [
-      "Alpha uses mock authentication (session storage)",
-      "No live AI API connections",
-      "No database persistence",
-      "Local JSON stores are runtime-only",
+      "AI responses are mock-generated (no OpenAI yet)",
+      "Research crawler uses seeded content only",
+      "Configure Supabase env vars for full persistence",
     ],
   });
 }

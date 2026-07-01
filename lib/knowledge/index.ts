@@ -1,2 +1,4 @@
-export { MockKnowledgeEngine, knowledgeEngine } from "./knowledge-engine";
-export { mockKnowledgeItems } from "./mock-knowledge-store";
+export {
+  SupabaseKnowledgeEngine,
+  createKnowledgeEngine,
+} from "./knowledge-engine";

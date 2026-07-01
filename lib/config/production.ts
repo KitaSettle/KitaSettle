@@ -1,9 +1,4 @@
 import type { NextConfig } from "next";
-import { assertProductionEnv } from "./env";
-
-if (process.env.NODE_ENV === "production") {
-  assertProductionEnv();
-}
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,

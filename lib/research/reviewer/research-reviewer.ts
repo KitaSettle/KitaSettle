@@ -1,11 +1,16 @@
 import type { ResearchFinding, ResearchReviewer } from "@/lib/types/live-research";
 import type { LocalJsonStore } from "@/lib/types/live-research";
-import { researchQueueService } from "@/lib/brain/research-queue-service";
+import type { ResearchQueueService } from "@/lib/types/research";
+import { createResearchQueueService } from "@/lib/brain/research-queue-service";
+import { getSystemUserId } from "@/lib/system-user";
 import { nowIso } from "@/lib/utils";
 import { localJsonStore } from "../store/local-json-store";
 
-export class MockResearchReviewer implements ResearchReviewer {
-  constructor(private store: LocalJsonStore = localJsonStore) {}
+export class ResearchReviewerImpl implements ResearchReviewer {
+  constructor(
+    private store: LocalJsonStore,
+    private researchQueue: ResearchQueueService,
+  ) {}
 
   async submitForReview(finding: ResearchFinding): Promise<ResearchFinding> {
     const stored = await this.store.getFindings();
@@ -19,7 +24,7 @@ export class MockResearchReviewer implements ResearchReviewer {
     stored.lastUpdated = nowIso();
     await this.store.saveFindings(stored);
 
-    const queueItem = await researchQueueService.enqueue({
+    const queueItem = await this.researchQueue.enqueue({
       title: readyFinding.title,
       summary: readyFinding.executiveSummary.summary,
       source: readyFinding.sourceName,
@@ -30,7 +35,7 @@ export class MockResearchReviewer implements ResearchReviewer {
       tags: readyFinding.tags,
     });
 
-    await researchQueueService.updateStatus(queueItem.id, "Ready");
+    await this.researchQueue.updateStatus(queueItem.id, "Ready");
 
     return readyFinding;
   }
@@ -46,4 +51,8 @@ export class MockResearchReviewer implements ResearchReviewer {
   }
 }
 
-export const researchReviewer = new MockResearchReviewer();
+export async function createResearchReviewer(userId?: string): Promise<ResearchReviewerImpl> {
+  const resolvedUserId = userId ?? (await getSystemUserId());
+  const researchQueue = await createResearchQueueService(resolvedUserId);
+  return new ResearchReviewerImpl(localJsonStore, researchQueue);
+}
