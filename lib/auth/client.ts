@@ -4,25 +4,14 @@ import { isSupabaseConfigured } from "@/lib/config/env";
 import { createClient } from "@/lib/supabase/client";
 import * as mockAuth from "./mock-client";
 
-async function useSupabaseAuth<T>(
-  supabaseFn: () => Promise<T>,
-  mockFn: () => Promise<T>,
-): Promise<T> {
-  if (!isSupabaseConfigured()) {
-    return mockFn();
-  }
-  return supabaseFn();
-}
-
 export async function getSession() {
-  return useSupabaseAuth(
-    async () => {
-      const supabase = createClient();
-      const { data } = await supabase.auth.getSession();
-      return data.session;
-    },
-    mockAuth.getSession,
-  );
+  if (!isSupabaseConfigured()) {
+    return mockAuth.getSession();
+  }
+
+  const supabase = createClient();
+  const { data } = await supabase.auth.getSession();
+  return data.session;
 }
 
 export async function isAuthenticated(): Promise<boolean> {
@@ -36,54 +25,50 @@ export async function isAuthenticated(): Promise<boolean> {
 }
 
 export async function signInWithEmail(email: string, password: string) {
-  return useSupabaseAuth(
-    async () => {
-      const supabase = createClient();
-      return supabase.auth.signInWithPassword({ email, password });
-    },
-    () => mockAuth.signInWithEmail(email, password),
-  );
+  if (!isSupabaseConfigured()) {
+    return mockAuth.signInWithEmail(email, password);
+  }
+
+  const supabase = createClient();
+  return supabase.auth.signInWithPassword({ email, password });
 }
 
 export async function signUpWithEmail(email: string, password: string, name?: string) {
-  return useSupabaseAuth(
-    async () => {
-      const supabase = createClient();
-      return supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { name: name ?? email.split("@")[0] },
-        },
-      });
+  if (!isSupabaseConfigured()) {
+    return mockAuth.signUpWithEmail(email, password);
+  }
+
+  const supabase = createClient();
+  return supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { name: name ?? email.split("@")[0] },
     },
-    () => mockAuth.signUpWithEmail(email, password),
-  );
+  });
 }
 
 export async function signInWithOAuth(provider: "google" | "github") {
-  return useSupabaseAuth(
-    async () => {
-      const supabase = createClient();
-      return supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: `${window.location.origin}/api/auth/callback`,
-        },
-      });
+  if (!isSupabaseConfigured()) {
+    return mockAuth.signInWithOAuth(provider);
+  }
+
+  const supabase = createClient();
+  return supabase.auth.signInWithOAuth({
+    provider,
+    options: {
+      redirectTo: `${window.location.origin}/api/auth/callback`,
     },
-    () => mockAuth.signInWithOAuth(provider),
-  );
+  });
 }
 
 export async function signOut() {
-  return useSupabaseAuth(
-    async () => {
-      const supabase = createClient();
-      await supabase.auth.signOut();
-    },
-    mockAuth.signOut,
-  );
+  if (!isSupabaseConfigured()) {
+    return mockAuth.signOut();
+  }
+
+  const supabase = createClient();
+  await supabase.auth.signOut();
 }
 
 export function onAuthStateChange(callback: (authenticated: boolean) => void) {
