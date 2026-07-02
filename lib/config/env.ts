@@ -115,16 +115,43 @@ export function isGoogleOAuthConfigured(): boolean {
   return true;
 }
 
-export function assertProductionEnv(): void {
-  if (!env.isProduction) return;
+function resolveProductionAppUrl(): string | undefined {
+  const explicit = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (explicit?.startsWith("http")) return explicit;
 
-  assertServerSecretsNotPublic();
+  const vercel = process.env.VERCEL_URL?.trim();
+  if (vercel) return `https://${vercel.replace(/^https?:\/\//, "")}`;
 
-  if (!process.env.NEXT_PUBLIC_APP_URL?.trim()?.startsWith("http")) {
-    throw new Error("NEXT_PUBLIC_APP_URL must be set for production deployments.");
+  return undefined;
+}
+
+export function getProductionEnvIssues(): string[] {
+  if (!env.isProduction) return [];
+
+  const issues: string[] = [];
+
+  try {
+    assertServerSecretsNotPublic();
+  } catch (error) {
+    issues.push(error instanceof Error ? error.message : "Server secret exposed via NEXT_PUBLIC_.");
+  }
+
+  if (!resolveProductionAppUrl()) {
+    issues.push("NEXT_PUBLIC_APP_URL must be set for production deployments.");
   }
 
   if (isSupabaseConfigured() && !env.supabaseServiceRoleKey) {
-    throw new Error("SUPABASE_SERVICE_ROLE_KEY is required in production when Supabase is configured.");
+    issues.push(
+      "SUPABASE_SERVICE_ROLE_KEY is required in production when Supabase is configured.",
+    );
+  }
+
+  return issues;
+}
+
+export function assertProductionEnv(): void {
+  const issues = getProductionEnvIssues();
+  if (issues.length > 0) {
+    throw new Error(issues.join(" "));
   }
 }

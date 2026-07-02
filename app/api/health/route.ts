@@ -3,6 +3,7 @@ import {
   env,
   getAIProviderMode,
   getDataMode,
+  getProductionEnvIssues,
   isGoogleOAuthConfigured,
   isOpenAIConfigured,
   isSupabaseConfigured,
@@ -51,16 +52,20 @@ export async function GET(request: Request) {
     Promise.resolve(isGoogleOAuthConfigured()),
   ]);
 
+  const envIssues = getProductionEnvIssues();
   const checks = {
     supabase,
     openai: openaiConfigured ? "configured" : "mock",
     google: googleConfigured ? "configured" : "offline",
     aiProvider: getAIProviderMode(),
     dataMode: getDataMode(),
+    envIssues: envIssues.length > 0 ? envIssues : undefined,
   };
 
   const degraded =
-    supabase !== "ok" || (!openaiConfigured && env.isProduction);
+    supabase !== "ok" ||
+    envIssues.length > 0 ||
+    (!openaiConfigured && env.isProduction);
 
   return NextResponse.json({
     status: degraded ? "degraded" : "ok",
