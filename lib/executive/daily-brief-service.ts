@@ -2,6 +2,13 @@ import type { Repositories } from "@/lib/repositories";
 import type { DailyExecutiveBriefPayload } from "@/lib/types/daily-executive-brief";
 import { createGenerateBriefAction } from "@/lib/ai/generate-brief-action";
 import { createBrainServices } from "@/lib/brain/create-brain-services";
+import { createExecutiveDNAEngine } from "@/lib/executive-dna";
+import {
+  DEFAULT_EXECUTIVE_DNA_PERSONALIZATION,
+  DEFAULT_EXECUTIVE_DNA_STATUS,
+  emptyRecommendations,
+  withExecutiveDnaFallback,
+} from "@/lib/executive-dna/defaults";
 import { mapResearchQueueRecordToUi } from "@/lib/executive-brain/mappers";
 import { isSameUtcDay } from "@/lib/utils/date";
 
@@ -9,6 +16,7 @@ export async function generateIfMissing(
   userId: string,
   repos: Repositories,
 ): Promise<DailyExecutiveBriefPayload> {
+  const dnaEngine = createExecutiveDNAEngine(repos);
   const today = new Date();
   let brief = await repos.executiveBriefs.getBriefForDate(userId, today);
   let generatedToday = false;
@@ -37,6 +45,33 @@ export async function generateIfMissing(
     repos.trustedSources.list(),
   ]);
 
+  const [status, personalization, recommendations] = await Promise.all([
+    withExecutiveDnaFallback(
+      () => dnaEngine.getStatus(userId),
+      DEFAULT_EXECUTIVE_DNA_STATUS,
+    ),
+    withExecutiveDnaFallback(
+      () => dnaEngine.personalizationService.getHints(userId),
+      DEFAULT_EXECUTIVE_DNA_PERSONALIZATION,
+    ),
+    withExecutiveDnaFallback(
+      () => dnaEngine.recommendationService.list(userId),
+      emptyRecommendations(),
+    ),
+  ]);
+
+  if (status.interviewComplete) {
+    await withExecutiveDnaFallback(async () => {
+      await dnaEngine.refreshIntelligence(userId);
+      await dnaEngine.learningService.observeBriefUsage(userId);
+    }, undefined);
+  }
+
+  const personalizedBrief = dnaEngine.personalizationService.applyToBrief(
+    brief,
+    personalization,
+  );
+
   const recentResearch = research
     .slice()
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
@@ -48,10 +83,15 @@ export async function generateIfMissing(
     .map(mapResearchQueueRecordToUi);
 
   return {
-    brief,
+    brief: personalizedBrief,
     recentResearch,
     pendingApprovals,
     trustedSourcesCount: trustedSources.length,
     generatedToday,
+    dna: {
+      status,
+      personalization,
+      recommendations,
+    },
   };
 }

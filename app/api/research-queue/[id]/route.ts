@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isErrorResponse, jsonError, requireAuthUserId } from "@/lib/api/auth";
+import { createExecutiveDNAEngine } from "@/lib/executive-dna";
 import { getServerRepositories } from "@/lib/repositories/server";
 import { nowIso } from "@/lib/utils";
 
@@ -26,6 +27,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   const body = (await request.json()) as { status?: string; action?: string };
 
   const repos = await getServerRepositories();
+  const dnaEngine = createExecutiveDNAEngine(repos);
   const existing = await repos.researchQueue.getById(userId, id);
   if (!existing) return jsonError("Research item not found", 404);
 
@@ -59,9 +61,11 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       importance: existing.importance,
     });
     await repos.brainActivity.add(userId, "Saved to Executive Brain", existing.title);
+    await dnaEngine.learningService.observeApproval(userId, existing.tags, existing.source);
   } else if (body.action === "reject") {
     await repos.researchQueue.reject(userId, id);
     await repos.brainActivity.add(userId, "Discarded research", existing.title);
+    await dnaEngine.learningService.observeRejection(userId, existing.tags, existing.title);
   } else if (body.action === "save-memory") {
     await repos.memory.create(
       userId,

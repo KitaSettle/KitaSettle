@@ -21,6 +21,7 @@ import { mapBriefOutputToLegacyBrief } from "@/lib/executive/brief-generator";
 import { isSameUtcDay } from "@/lib/utils/date";
 import { nowIso } from "@/lib/utils";
 import { matchesAnyField } from "@/lib/utils";
+import { MockExecutiveDNARepository } from "./executive-dna-mock";
 import type { Repositories } from "../index";
 import {
   MockTrustedSourceRepository,
@@ -383,6 +384,7 @@ export function createMockRepositories(): Repositories {
     skills: new MockSkillRepository(),
     brainActivity: new MockBrainActivityRepository(),
     trustedSources: new MockTrustedSourceRepository(),
+    executiveDna: new MockExecutiveDNARepository(),
   };
 
   return cachedMockRepositories;

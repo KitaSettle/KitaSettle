@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { DailyExecutiveBriefPayload } from "@/lib/types/daily-executive-brief";
 import { ExecutiveDailyContent } from "./ExecutiveDailyContent";
 import { ExecutiveDailySkeleton } from "./ExecutiveDailySkeleton";
 
 export function ExecutiveDailyLoader() {
+  const router = useRouter();
   const [name, setName] = useState("Executive");
   const [data, setData] = useState<DailyExecutiveBriefPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -15,19 +17,33 @@ export function ExecutiveDailyLoader() {
 
     async function load() {
       try {
-        const [userResponse, briefResponse] = await Promise.all([
+        const [userResponse, statusResponse] = await Promise.all([
           fetch("/api/users/me"),
-          fetch("/api/dashboard/executive"),
+          fetch("/api/executive-dna/status"),
         ]);
 
-        if (!userResponse.ok || !briefResponse.ok) {
+        if (!userResponse.ok) {
+          throw new Error("Failed to load user profile");
+        }
+
+        const user = (await userResponse.json()) as { name: string };
+
+        if (statusResponse.ok) {
+          const status = (await statusResponse.json()) as { needsDiscovery?: boolean };
+          if (status.needsDiscovery) {
+            router.replace("/dashboard/discovery");
+            return;
+          }
+        }
+
+        const briefResponse = await fetch("/api/dashboard/executive");
+        if (!briefResponse.ok) {
           const errorBody = (await briefResponse.json().catch(() => null)) as {
             error?: string;
           } | null;
           throw new Error(errorBody?.error ?? "Failed to load daily executive brief");
         }
 
-        const user = (await userResponse.json()) as { name: string };
         const briefData = (await briefResponse.json()) as DailyExecutiveBriefPayload;
 
         if (!cancelled) {
@@ -45,7 +61,7 @@ export function ExecutiveDailyLoader() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [router]);
 
   if (error) {
     throw new Error(error);

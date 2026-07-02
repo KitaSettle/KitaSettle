@@ -26,6 +26,10 @@ import {
   type UserRepository,
 } from "./user-repository";
 import {
+  SupabaseExecutiveDNARepository,
+  type ExecutiveDNARepository,
+} from "./executive-dna-repository";
+import {
   SupabaseTrustedSourceRepository,
   type TrustedSourceRepository,
 } from "./trusted-source-repository";
@@ -39,6 +43,7 @@ export interface Repositories {
   skills: SkillRepository;
   brainActivity: BrainActivityRepository;
   trustedSources: TrustedSourceRepository;
+  executiveDna: ExecutiveDNARepository;
 }
 
 export function createRepositories(client: SupabaseClient): Repositories {
@@ -51,6 +56,7 @@ export function createRepositories(client: SupabaseClient): Repositories {
     skills: new SupabaseSkillRepository(client),
     brainActivity: new SupabaseBrainActivityRepository(client),
     trustedSources: new SupabaseTrustedSourceRepository(client),
+    executiveDna: new SupabaseExecutiveDNARepository(client),
   };
 }
 
@@ -59,6 +65,7 @@ export type {
   MemoryRepository,
   ResearchQueueRepository,
   ExecutiveBriefRepository,
+  ExecutiveDNARepository,
   SkillRepository,
   UserRepository,
   BrainActivityRepository,

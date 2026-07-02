@@ -6,6 +6,7 @@ import { ExecutiveBriefCard } from "./ExecutiveBriefCard";
 import { OpportunityCard } from "./OpportunityCard";
 import { PendingApprovalCard } from "./PendingApprovalCard";
 import { PriorityCard } from "./PriorityCard";
+import { RecommendationCard } from "./RecommendationCard";
 import { ResearchCard } from "./ResearchCard";
 import { RiskCard } from "./RiskCard";
 
@@ -25,8 +26,14 @@ function formatLastUpdated(iso: string): string {
 }
 
 export function ExecutiveDailyContent({ name, data }: ExecutiveDailyContentProps) {
-  const { brief, recentResearch, pendingApprovals, trustedSourcesCount, generatedToday } =
-    data;
+  const {
+    brief,
+    recentResearch,
+    pendingApprovals,
+    trustedSourcesCount,
+    generatedToday,
+    dna,
+  } = data;
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -37,10 +44,29 @@ export function ExecutiveDailyContent({ name, data }: ExecutiveDailyContentProps
         <Badge variant="default">Last updated {formatLastUpdated(brief.updatedAt)}</Badge>
         <Badge variant="default">{trustedSourcesCount} trusted sources monitored</Badge>
         {generatedToday && <Badge variant="default">Generated today</Badge>}
+        {dna?.status && (
+          <Badge variant="default">Executive DNA {dna.status.overallConfidence}%</Badge>
+        )}
       </div>
+
+      {dna?.personalization && (
+        <div className="mb-6 rounded-2xl border border-border bg-surface px-5 py-4">
+          <p className="text-sm font-medium text-foreground">
+            {dna.personalization.professionLabel} priorities
+          </p>
+          <p className="mt-1 text-sm text-muted">{dna.personalization.priorityFocus}</p>
+          <p className="mt-2 text-xs text-muted">
+            Emphasis: {dna.personalization.emphasisAreas.join(" · ")}
+          </p>
+        </div>
+      )}
 
       <div className="space-y-6">
         <ExecutiveBriefCard brief={brief} generatedToday={generatedToday} />
+
+        {dna?.recommendations && (
+          <RecommendationCard recommendations={dna.recommendations} />
+        )}
 
         <div className="grid gap-6 md:grid-cols-2">
           <PriorityCard priorities={brief.priorities} />

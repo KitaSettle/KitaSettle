@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isErrorResponse, requireAuthUserId } from "@/lib/api/auth";
+import { createExecutiveDNAEngine } from "@/lib/executive-dna";
 import { getServerRepositories } from "@/lib/repositories/server";
 
 export async function GET() {
@@ -24,6 +25,12 @@ export async function POST(request: Request) {
     const body = await request.json();
     const repos = await getServerRepositories();
     const item = await repos.knowledge.create(userId, body);
+    const dnaEngine = createExecutiveDNAEngine(repos);
+    await dnaEngine.learningService.observeKnowledgeSaved(
+      userId,
+      Array.isArray(body.tags) ? body.tags : [],
+      typeof body.category === "string" ? body.category : "Knowledge",
+    );
     return NextResponse.json(item, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to create knowledge";

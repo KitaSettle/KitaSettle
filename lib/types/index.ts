@@ -10,3 +10,4 @@ export * from "./brain";
 export * from "./live-research";
 export * from "./ui";
 export * from "./daily-executive-brief";
+export * from "./executive-dna";
