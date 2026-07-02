@@ -161,7 +161,7 @@ export class SupabaseAnalyticsRepository implements AnalyticsRepository {
     const [{ count: running }, { count: failed }, { count: pending }] = await Promise.all([
       this.client.from("sync_jobs").select("*", { count: "exact", head: true }).eq("status", "running"),
       this.client.from("sync_jobs").select("*", { count: "exact", head: true }).eq("status", "failed"),
-      this.client.from("sync_jobs").select("*", { count: "exact", head: true }).eq("status", "running"),
+      this.client.from("sync_jobs").select("*", { count: "exact", head: true }).eq("status", "queued"),
     ]);
 
     return {

@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { assertServerSecretsNotPublic, isSupabaseConfigured } from "@/lib/config/env";
 import { requireAuthUserId, isErrorResponse } from "@/lib/api/auth";
+import { createScriptClient } from "@/lib/supabase/script";
 import { createAuditRepository, recordAuditEvent } from "./audit-log";
+import { assertSameOriginMutation } from "./origin-check";
 import {
   checkRateLimit,
   getClientIp,
@@ -23,8 +24,7 @@ export async function enforceRateLimit(
 
   if (!result.allowed) {
     if (isSupabaseConfigured()) {
-      const client = await createClient();
-      const audit = createAuditRepository(client);
+      const audit = createAuditRepository(createScriptClient());
       await recordAuditEvent(audit, {
         userId,
         eventType: "rate_limited",
@@ -53,6 +53,11 @@ export async function requireAuthenticatedUser(
   bucket: keyof typeof RATE_LIMITS = "mutation",
 ): Promise<string | NextResponse> {
   assertServerSecretsNotPublic();
+
+  if (!assertSameOriginMutation(request)) {
+    return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
+  }
+
   const userId = await requireAuthUserId();
   if (isErrorResponse(userId)) return userId;
 
@@ -70,8 +75,9 @@ export async function writeAudit(
   metadata: Record<string, unknown> = {},
   request?: Request,
 ): Promise<void> {
-  const client = isSupabaseConfigured() ? await createClient() : undefined;
-  const audit = createAuditRepository(client);
+  const audit = isSupabaseConfigured()
+    ? createAuditRepository(createScriptClient())
+    : createAuditRepository();
   await recordAuditEvent(audit, {
     userId,
     eventType,

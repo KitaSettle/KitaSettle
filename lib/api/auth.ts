@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { assertServerSecretsNotPublic, env, isSupabaseConfigured } from "@/lib/config/env";
 import { MOCK_AUTH_COOKIE, MOCK_USER_ID } from "@/lib/auth/constants";
 import { createClient } from "@/lib/supabase/server";
+import { assertUserNotDisabled } from "@/lib/admin/admin-guard";
 
 export async function requireAuthUserId(): Promise<string | NextResponse> {
   assertServerSecretsNotPublic();
@@ -27,6 +28,11 @@ export async function requireAuthUserId(): Promise<string | NextResponse> {
 
   if (error || !user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const allowed = await assertUserNotDisabled(user.id);
+  if (!allowed) {
+    return NextResponse.json({ error: "This account has been disabled." }, { status: 403 });
   }
 
   return user.id;

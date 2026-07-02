@@ -2,8 +2,11 @@ import type { ExtractedIntakeContent } from "./content-extractor";
 import type { IntakeAnalysis } from "@/lib/types/intake";
 import type { ExecutiveDNAProfile } from "@/lib/types/executive-dna";
 import { isOpenAIConfigured } from "@/lib/config/env";
-import { getOpenAIClient, getOpenAIModel } from "@/lib/ai/openai-client";
-import { recordAiUsage } from "@/lib/ai/usage-tracker";
+import { AiBudgetExceededError } from "@/lib/ai/budget";
+import { createChatCompletion } from "@/lib/ai/openai-request";
+import { getOpenAIModel } from "@/lib/ai/openai-client";
+import { parseJsonObject } from "@/lib/ai/safe-json";
+import { recordOperationalError } from "@/lib/observability/record-error";
 import { prepareAiUserContent, sanitizeStructuredPayload } from "@/lib/security/sanitize";
 
 const CONFIDENCE_THRESHOLD = 70;
@@ -59,13 +62,13 @@ function buildMockAnalysis(content: ExtractedIntakeContent, dna: ExecutiveDNAPro
 export async function analyzeIntakeContent(
   content: ExtractedIntakeContent,
   dna: ExecutiveDNAProfile | null,
+  userId: string,
 ): Promise<IntakeAnalysis> {
   if (!isOpenAIConfigured()) {
     return buildMockAnalysis(content, dna);
   }
 
   try {
-    const client = getOpenAIClient();
     const payload = sanitizeStructuredPayload("intake", {
       sourceLabel: content.sourceLabel,
       sourceType: content.sourceType,
@@ -75,7 +78,16 @@ export async function analyzeIntakeContent(
       projects: dna?.profile.currentProjects ?? [],
       content: content.text.slice(0, 12_000),
     });
-    const { content: userContent } = prepareAiUserContent("intake", JSON.stringify(payload));
+    const prepared = prepareAiUserContent("intake", JSON.stringify(payload));
+
+    if (prepared.blocked) {
+      await recordOperationalError({
+        source: "ai.prompt_injection",
+        message: "Blocked intake content matched injection heuristics.",
+        userId,
+        metadata: { promptInjection: true },
+      });
+    }
 
     const messages: Array<{ role: "system" | "user"; content: string | unknown[] }> = [
       {
@@ -89,7 +101,7 @@ export async function analyzeIntakeContent(
       messages.push({
         role: "user",
         content: [
-          { type: "text", text: userContent },
+          { type: "text", text: prepared.content },
           {
             type: "image_url",
             image_url: { url: `data:${content.mimeType};base64,${content.imageBase64}` },
@@ -97,29 +109,21 @@ export async function analyzeIntakeContent(
         ],
       });
     } else {
-      messages.push({ role: "user", content: userContent });
+      messages.push({ role: "user", content: prepared.content });
     }
 
-    const started = Date.now();
-    const response = await client.chat.completions.create({
+    const response = await createChatCompletion({
+      userId,
+      feature: "intake_analysis",
       model: getOpenAIModel(),
-      temperature: 0.2,
-      response_format: { type: "json_object" },
+      responseFormat: { type: "json_object" },
       messages: messages as never,
     });
 
-    const usage = response.usage;
-    void recordAiUsage({
-      userId: null,
-      feature: "intake_analysis",
-      model: getOpenAIModel(),
-      promptTokens: usage?.prompt_tokens ?? 0,
-      completionTokens: usage?.completion_tokens ?? 0,
-      estimatedCostUsd: 0,
-      responseTimeMs: Date.now() - started,
-    });
-
-    const parsed = JSON.parse(response.choices[0]?.message?.content ?? "{}") as Partial<IntakeAnalysis>;
+    const parsed = parseJsonObject<Partial<IntakeAnalysis>>(
+      response.choices[0]?.message?.content,
+      {},
+    );
     const overallConfidence = Math.round(parsed.overallConfidence ?? 75);
 
     return {
@@ -142,8 +146,23 @@ export async function analyzeIntakeContent(
         overallConfidence < CONFIDENCE_THRESHOLD || Boolean(parsed.needsUserClarification),
       clarificationQuestions: parsed.clarificationQuestions ?? [],
     };
-  } catch {
-    return buildMockAnalysis(content, dna);
+  } catch (error) {
+    if (error instanceof AiBudgetExceededError) {
+      throw error;
+    }
+
+    await recordOperationalError({
+      source: "intake.analysis",
+      message: error instanceof Error ? error.message : "Intake analysis failed",
+      userId,
+      retryable: true,
+    });
+
+    if (!isOpenAIConfigured()) {
+      return buildMockAnalysis(content, dna);
+    }
+
+    throw error;
   }
 }
 

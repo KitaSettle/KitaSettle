@@ -8,12 +8,18 @@ const bodySchema = z.object({
   email: z.string().email(),
 });
 
+const NEUTRAL_HINT: AccountHint = {
+  exists: null,
+  hasEmailPassword: false,
+  oauthProviders: [],
+};
+
 export async function POST(request: Request) {
   const limited = await enforceRateLimit(request, null, "auth");
   if (limited) return limited;
 
-  if (!isSupabaseConfigured()) {
-    return NextResponse.json({ exists: null, hasEmailPassword: false, oauthProviders: [] });
+  if (!isSupabaseConfigured() || !env.supabaseServiceRoleKey) {
+    return NextResponse.json(NEUTRAL_HINT);
   }
 
   let email: string;
@@ -23,6 +29,8 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "Invalid email." }, { status: 400 });
   }
+
+  await new Promise((resolve) => setTimeout(resolve, 150));
 
   try {
     const filter = encodeURIComponent(`email.eq.${email}`);
@@ -37,15 +45,14 @@ export async function POST(request: Request) {
     );
 
     if (!response.ok) {
-      return NextResponse.json({ exists: null, hasEmailPassword: false, oauthProviders: [] });
+      return NextResponse.json(NEUTRAL_HINT);
     }
 
     const payload = (await response.json()) as { users?: Array<{ identities?: Array<{ provider?: string }> }> };
     const user = payload.users?.[0];
 
     if (!user) {
-      const hint: AccountHint = { exists: false, hasEmailPassword: false, oauthProviders: [] };
-      return NextResponse.json(hint);
+      return NextResponse.json(NEUTRAL_HINT);
     }
 
     const providers = (user.identities ?? [])
@@ -60,6 +67,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json(hint);
   } catch {
-    return NextResponse.json({ exists: null, hasEmailPassword: false, oauthProviders: [] });
+    return NextResponse.json(NEUTRAL_HINT);
   }
 }

@@ -45,6 +45,11 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   if (!existing) return jsonError("Research item not found", 404);
 
   if (parsed.data.action === "approve") {
+    if (existing.status === "Approved") {
+      const updated = await repos.researchQueue.getById(userId, id);
+      return NextResponse.json(updated);
+    }
+
     await repos.researchQueue.approve(userId, id);
     await repos.memory.create(
       userId,

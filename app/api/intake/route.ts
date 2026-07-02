@@ -1,17 +1,21 @@
 import { NextResponse } from "next/server";
 import { isErrorResponse, jsonError } from "@/lib/api/auth";
+import { AiBudgetExceededError } from "@/lib/ai/budget";
 import { createIntakeService } from "@/lib/intake";
 import {
   extractFromFile,
   extractFromText,
   extractFromUrl,
 } from "@/lib/intake/content-extractor";
+import { recordOperationalError } from "@/lib/observability/record-error";
 import { getServerRepositories } from "@/lib/repositories/server";
 import { requireAuthenticatedUser, writeAudit } from "@/lib/security/secure-route";
 import { intakeJsonSchema, parseJsonBody } from "@/lib/security/validation";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+
+const MAX_INTAKE_TEXT = 20_000;
 
 export async function POST(request: Request) {
   const userId = await requireAuthenticatedUser(request, "ai");
@@ -36,6 +40,9 @@ export async function POST(request: Request) {
       }
 
       if (typeof url === "string" && url.trim()) {
+        if (url.trim().length > 2048) {
+          return jsonError("That link is too long.");
+        }
         const extracted = await extractFromUrl(url.trim());
         const result = await intakeService.delegate(userId, extracted);
         await writeAudit(userId, "data_access", "intake", "delegate_url", { intakeId: result.intakeId }, request);
@@ -43,6 +50,9 @@ export async function POST(request: Request) {
       }
 
       if (typeof text === "string" && text.trim()) {
+        if (text.trim().length > MAX_INTAKE_TEXT) {
+          return jsonError("That text is too long. Try a shorter excerpt.");
+        }
         const extracted = await extractFromText(text.trim(), "paste", "Pasted content");
         const result = await intakeService.delegate(userId, extracted);
         await writeAudit(userId, "data_access", "intake", "delegate_paste", { intakeId: result.intakeId }, request);
@@ -82,6 +92,17 @@ export async function POST(request: Request) {
     );
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
+    if (error instanceof AiBudgetExceededError) {
+      return NextResponse.json({ error: error.message }, { status: 429 });
+    }
+
+    await recordOperationalError({
+      source: "intake.delegate",
+      message: error instanceof Error ? error.message : "Intake delegation failed",
+      userId: isErrorResponse(userId) ? null : userId,
+      retryable: true,
+    });
+
     const raw = error instanceof Error ? error.message : undefined;
     const message =
       raw && !raw.toLowerCase().includes("stack")

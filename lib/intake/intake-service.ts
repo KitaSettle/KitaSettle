@@ -12,7 +12,7 @@ export class IntakeService {
 
   async delegate(userId: string, content: ExtractedIntakeContent): Promise<IntakeDelegationResult> {
     const dnaProfile = await this.repos.executiveDna.getProfile(userId);
-    const analysis = await analyzeIntakeContent(content, dnaProfile);
+    const analysis = await analyzeIntakeContent(content, dnaProfile, userId);
     const findings = buildFindings(analysis);
     const response = buildNaturalResponse(analysis, findings);
 

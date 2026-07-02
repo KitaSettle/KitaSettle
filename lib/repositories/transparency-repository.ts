@@ -98,9 +98,13 @@ export class SupabaseTransparencyRepository implements TransparencyRepository {
   }
 
   async deleteAllKnowledge(userId: string): Promise<number> {
-    const items = await this.repos.knowledge.getAll(userId);
-    await Promise.all(items.map((item) => this.repos.knowledge.delete(userId, item.id)));
-    return items.length;
+    const { count, error } = await this.client
+      .from("knowledge")
+      .delete({ count: "exact" })
+      .eq("user_id", userId);
+
+    if (error) throw error;
+    return count ?? 0;
   }
 
   async deleteAllMemory(userId: string): Promise<number> {

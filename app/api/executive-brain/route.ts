@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
-import { isErrorResponse, requireAuthUserId } from "@/lib/api/auth";
+import { isErrorResponse } from "@/lib/api/auth";
 import { getServerRepositories } from "@/lib/repositories/server";
 import { assembleExecutiveBrainData } from "@/lib/executive-brain/assemble-brain-data";
+import { requireAuthenticatedUser } from "@/lib/security/secure-route";
 
-export async function GET() {
-  const userId = await requireAuthUserId();
+export async function GET(request: Request) {
+  const userId = await requireAuthenticatedUser(request, "mutation");
   if (isErrorResponse(userId)) return userId;
 
   try {

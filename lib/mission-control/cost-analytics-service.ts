@@ -1,18 +1,15 @@
 import type { AnalyticsRepository } from "@/lib/repositories/analytics-repository";
 import type { AiAnalyticsSection, FinancialSection, AiRoiSection } from "@/lib/types/mission-control";
 
-const ESTIMATED_COST_PER_AI_AUDIT = 0.002;
-
 export class CostAnalyticsService {
   constructor(private analytics: AnalyticsRepository) {}
 
   async buildAiAnalytics(activeUsers: number): Promise<AiAnalyticsSection> {
     const usage = await this.analytics.getAiUsageAggregates();
 
-    const monthCost =
-      usage.monthCost > 0 ? usage.monthCost : usage.requests * ESTIMATED_COST_PER_AI_AUDIT;
-    const todayCost =
-      usage.todayCost > 0 ? usage.todayCost : Math.max(monthCost / 30, usage.requests * 0.0005);
+    const hasUsageData = usage.monthCost > 0 || usage.requests > 0;
+    const monthCost = hasUsageData ? usage.monthCost : 0;
+    const todayCost = usage.todayCost > 0 ? usage.todayCost : 0;
 
     const topUser = usage.byUser.sort((a, b) => b.cost - a.cost)[0];
     const topFeature = usage.byFeature.sort((a, b) => b.cost - a.cost)[0];

@@ -115,7 +115,6 @@ export class SupabaseDecisionRepository implements DecisionRepository {
     if (items.length === 0) return;
 
     const rows = items.map((item) => ({
-      id: item.id,
       user_id: userId,
       external_key: item.externalKey,
       title: item.title,

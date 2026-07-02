@@ -4,6 +4,7 @@ import {
   INTAKE_ACCEPTED_MIME_PREFIXES,
   INTAKE_MAX_FILE_BYTES,
 } from "@/lib/types/intake";
+import { assertSafeFetchUrl } from "@/lib/security/url-validator";
 
 export interface ExtractedIntakeContent {
   sourceType: IntakeSourceType;
@@ -39,10 +40,17 @@ export function isAcceptedIntakeFile(name: string, mimeType: string | null, size
 }
 
 export async function extractFromUrl(url: string): Promise<ExtractedIntakeContent> {
-  const response = await fetch(url, {
+  const safeUrl = await assertSafeFetchUrl(url);
+  const response = await fetch(safeUrl.toString(), {
     headers: { "User-Agent": "KitaSettle-Intake/1.0" },
     signal: AbortSignal.timeout(12_000),
+    redirect: "manual",
   });
+
+  if (response.status >= 300 && response.status < 400) {
+    throw new Error("Links that redirect are not supported for security reasons.");
+  }
+
   if (!response.ok) {
     throw new Error(`Could not fetch URL (${response.status}).`);
   }

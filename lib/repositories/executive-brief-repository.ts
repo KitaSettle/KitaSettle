@@ -67,6 +67,18 @@ export class SupabaseExecutiveBriefRepository implements ExecutiveBriefRepositor
   }
 
   async getLatestBrief(userId: string): Promise<StoredExecutiveBrief | null> {
+    const active = await this.client
+      .from("executive_briefs")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("is_active", true)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (active.error) throw active.error;
+    if (active.data) return mapStoredBriefRow(active.data as DbExecutiveBrief);
+
     const { data, error } = await this.client
       .from("executive_briefs")
       .select("*")

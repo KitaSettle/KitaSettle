@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
-import { isErrorResponse, requireAuthUserId } from "@/lib/api/auth";
+import { isErrorResponse } from "@/lib/api/auth";
 import { getServerRepositories } from "@/lib/repositories/server";
 import { getTransparencyRepository } from "@/lib/repositories/transparency-factory";
-import { writeAudit } from "@/lib/security/secure-route";
+import { requireAuthenticatedUser, writeAudit } from "@/lib/security/secure-route";
 import { createExportService } from "@/lib/trust-center";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
-  const userId = await requireAuthUserId();
+  const userId = await requireAuthenticatedUser(request, "ai");
   if (isErrorResponse(userId)) return userId;
 
   const format = new URL(request.url).searchParams.get("format") ?? "json";

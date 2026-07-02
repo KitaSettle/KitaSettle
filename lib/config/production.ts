@@ -14,6 +14,8 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ["@/components", "@/lib"],
   },
 
+  serverExternalPackages: ["openai"],
+
   compiler: {
     removeConsole:
       process.env.NODE_ENV === "production"

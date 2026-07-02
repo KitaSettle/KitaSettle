@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isErrorResponse } from "@/lib/api/auth";
 import { createIntegrationManager } from "@/lib/integrations";
+import { recordOperationalError } from "@/lib/observability/record-error";
 import { getServerRepositories } from "@/lib/repositories/server";
 import { requireAuthenticatedUser, writeAudit } from "@/lib/security/secure-route";
 
@@ -15,10 +16,16 @@ export async function POST(request: Request) {
     const repos = await getServerRepositories();
     const manager = createIntegrationManager(repos);
     const result = await manager.scheduler.runAll(userId);
-    await writeAudit(userId, "data_access", "integrations", "sync", {}, request);
+    await writeAudit(userId, "data_access", "integrations", "sync", { ok: true }, request);
     return NextResponse.json({ ok: true, result });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Sync failed";
-    return NextResponse.json({ error: message }, { status: 500 });
+    await recordOperationalError({
+      source: "integrations.sync",
+      message,
+      userId,
+      retryable: true,
+    });
+    return NextResponse.json({ error: "Sync could not complete. Please try again shortly." }, { status: 500 });
   }
 }
