@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getSignUpErrorMessage, isAuthenticated, signUpWithEmail } from "@/lib/auth";
+import { DEFAULT_POST_LOGIN_PATH } from "@/lib/auth/post-login";
 import { Button } from "@/components/ui/Button";
 import { KitaWorking } from "@/components/ui/KitaWorking";
 
@@ -19,7 +20,7 @@ export default function SignUpPage() {
   useEffect(() => {
     void isAuthenticated().then((authenticated) => {
       if (authenticated) {
-        router.replace("/dashboard/executive");
+        router.replace(DEFAULT_POST_LOGIN_PATH);
         return;
       }
       setReady(true);
