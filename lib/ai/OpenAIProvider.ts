@@ -15,6 +15,7 @@ import type {
 } from "./types";
 import type { BriefOpportunity, BriefPriority, BriefRisk } from "@/lib/types/executive";
 import { createId, nowIso } from "@/lib/utils";
+import { prepareAiUserContent, sanitizeStructuredPayload } from "@/lib/security/sanitize";
 import { getOpenAIClient, getOpenAIModel } from "./openai-client";
 
 function truncate(text: string, maxLength: number): string {
@@ -32,50 +33,50 @@ function collectTopics(input: AIExecutiveBriefInput): string[] {
 }
 
 function buildBriefContext(input: AIExecutiveBriefInput): string {
-  return JSON.stringify(
-    {
-      knowledge: input.knowledge.map((item) => ({
-        title: item.title,
-        summary: item.summary,
-        source: item.source,
-        importance: item.importance,
-        tags: item.tags,
-      })),
-      memory: input.memory.map((item) => ({
-        title: item.title,
-        description: item.description,
-        category: item.category,
-        importance: item.importance,
-      })),
-      research: input.research.map((item) => ({
-        title: item.title,
-        summary: item.summary,
-        source: item.source,
-        status: item.status,
-        importance: item.importance,
-        whyItMatters: item.whyItMatters,
-      })),
-      calendar: input.calendar,
-      tasks: input.tasks,
-    },
-    null,
-    2,
-  );
+  const sanitized = sanitizeStructuredPayload("executive-brief", {
+    knowledge: input.knowledge.map((item) => ({
+      title: item.title,
+      summary: item.summary,
+      source: item.source,
+      importance: item.importance,
+      tags: item.tags,
+    })),
+    memory: input.memory.map((item) => ({
+      title: item.title,
+      description: item.description,
+      category: item.category,
+      importance: item.importance,
+    })),
+    research: input.research.map((item) => ({
+      title: item.title,
+      summary: item.summary,
+      source: item.source,
+      status: item.status,
+      importance: item.importance,
+      whyItMatters: item.whyItMatters,
+    })),
+    calendar: input.calendar,
+    tasks: input.tasks,
+  });
+
+  return JSON.stringify(sanitized, null, 2);
 }
 
 async function createChatCompletion(
   systemPrompt: string,
   userPrompt: string,
+  source = "executive-ai",
   json = false,
 ): Promise<string> {
   const client = getOpenAIClient();
+  const { content } = prepareAiUserContent(source, userPrompt);
   const response = await client.chat.completions.create({
     model: getOpenAIModel(),
     temperature: 0.3,
     response_format: json ? { type: "json_object" } : undefined,
     messages: [
       { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
+      { role: "user", content },
     ],
   });
 
@@ -97,6 +98,7 @@ export class OpenAIProvider implements AIProvider {
     const content = await createChatCompletion(
       "You are an executive intelligence assistant for KitaSettle. Write concise, decision-ready summaries.",
       `${context}Summarise the following in at most ${limit} characters:\n\n${input.text}`,
+      "summary",
     );
 
     return {
@@ -109,6 +111,7 @@ export class OpenAIProvider implements AIProvider {
     const content = await createChatCompletion(
       "Classify executive intelligence content. Return JSON only.",
       `Classify this content and return JSON with keys category, subcategory, tags (string array):\nTitle: ${input.title}\nSource: ${input.source ?? "Unknown"}\nContent: ${input.content.slice(0, 2000)}`,
+      "classification",
       true,
     );
 
@@ -129,6 +132,7 @@ export class OpenAIProvider implements AIProvider {
         calendar: [],
         tasks: [],
       })}`,
+      "risk-extraction",
       true,
     );
 
@@ -152,6 +156,7 @@ export class OpenAIProvider implements AIProvider {
         calendar: [],
         tasks: [],
       })}`,
+      "opportunity-extraction",
       true,
     );
 
@@ -169,6 +174,7 @@ export class OpenAIProvider implements AIProvider {
     const content = await createChatCompletion(
       "Compare two executive documents. Return JSON only with keys summary, differences (string array), alignmentScore (0-100).",
       `Compare these documents:\nA: ${input.documentA.title}\n${input.documentA.content.slice(0, 2500)}\n\nB: ${input.documentB.title}\n${input.documentB.content.slice(0, 2500)}`,
+      "document-comparison",
       true,
     );
 
@@ -194,6 +200,7 @@ export class OpenAIProvider implements AIProvider {
         "recommendedActions (string array), estimatedReadingSaved (string), confidence (0-100 number).",
       ].join(" "),
       buildBriefContext(input),
+      "executive-brief",
       true,
     );
 

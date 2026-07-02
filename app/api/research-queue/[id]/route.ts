@@ -1,37 +1,50 @@
 import { NextResponse } from "next/server";
-import { isErrorResponse, jsonError, requireAuthUserId } from "@/lib/api/auth";
+import { isErrorResponse, jsonError } from "@/lib/api/auth";
 import { createExecutiveDNAEngine } from "@/lib/executive-dna";
 import { getServerRepositories } from "@/lib/repositories/server";
 import { nowIso } from "@/lib/utils";
+import { requireAuthenticatedUser, writeAudit } from "@/lib/security/secure-route";
+import { parseJsonBody, researchQueuePatchSchema } from "@/lib/security/validation";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-export async function GET(_request: Request, { params }: RouteParams) {
-  const userId = await requireAuthUserId();
+export async function GET(request: Request, { params }: RouteParams) {
+  const userId = await requireAuthenticatedUser(request, "mutation");
   if (isErrorResponse(userId)) return userId;
 
   const { id } = await params;
   const repos = await getServerRepositories();
   const item = await repos.researchQueue.getById(userId, id);
   if (!item) return jsonError("Research item not found", 404);
+
+  await writeAudit(userId, "data_access", "research_queue", "read", { itemId: id }, request);
   return NextResponse.json(item);
 }
 
 export async function PATCH(request: Request, { params }: RouteParams) {
-  const userId = await requireAuthUserId();
+  const userId = await requireAuthenticatedUser(request, "mutation");
   if (isErrorResponse(userId)) return userId;
 
   const { id } = await params;
-  const body = (await request.json()) as { status?: string; action?: string };
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return jsonError("Invalid JSON body");
+  }
+
+  const parsed = parseJsonBody(researchQueuePatchSchema, body);
+  if (!parsed.success) return jsonError(parsed.error);
 
   const repos = await getServerRepositories();
   const dnaEngine = createExecutiveDNAEngine(repos);
   const existing = await repos.researchQueue.getById(userId, id);
   if (!existing) return jsonError("Research item not found", 404);
 
-  if (body.action === "approve") {
+  if (parsed.data.action === "approve") {
     await repos.researchQueue.approve(userId, id);
     await repos.memory.create(
       userId,
@@ -62,11 +75,13 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     });
     await repos.brainActivity.add(userId, "Saved to Executive Brain", existing.title);
     await dnaEngine.learningService.observeApproval(userId, existing.tags, existing.source);
-  } else if (body.action === "reject") {
+    await writeAudit(userId, "approval", "research_queue", "approve", { itemId: id }, request);
+  } else if (parsed.data.action === "reject") {
     await repos.researchQueue.reject(userId, id);
     await repos.brainActivity.add(userId, "Discarded research", existing.title);
     await dnaEngine.learningService.observeRejection(userId, existing.tags, existing.title);
-  } else if (body.action === "save-memory") {
+    await writeAudit(userId, "rejection", "research_queue", "reject", { itemId: id }, request);
+  } else if (parsed.data.action === "save-memory") {
     await repos.memory.create(
       userId,
       {
@@ -80,11 +95,12 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       existing.tags,
     );
     await repos.brainActivity.add(userId, "Saved to memory", existing.title);
-  } else if (body.status) {
+    await writeAudit(userId, "approval", "research_queue", "save-memory", { itemId: id }, request);
+  } else if (parsed.data.status) {
     await repos.researchQueue.updateStatus(
       userId,
       id,
-      body.status as typeof existing.status,
+      parsed.data.status as typeof existing.status,
     );
   } else {
     return jsonError("Provide action or status");

@@ -1,5 +1,6 @@
 import { isOpenAIConfigured } from "@/lib/config/env";
 import { getOpenAIClient } from "@/lib/ai/openai-client";
+import { prepareAiUserContent } from "@/lib/security/sanitize";
 
 export async function generateDocumentSummary(name: string, mimeType?: string | null): Promise<string> {
   if (!isOpenAIConfigured()) {
@@ -7,6 +8,10 @@ export async function generateDocumentSummary(name: string, mimeType?: string | 
   }
 
   const client = getOpenAIClient();
+  const { content } = prepareAiUserContent(
+    "document",
+    JSON.stringify({ name, mimeType }),
+  );
   const response = await client.chat.completions.create({
     model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
     temperature: 0.2,
@@ -17,7 +22,7 @@ export async function generateDocumentSummary(name: string, mimeType?: string | 
       },
       {
         role: "user",
-        content: JSON.stringify({ name, mimeType }),
+        content,
       },
     ],
   });
@@ -29,9 +34,10 @@ export async function generateEmbedding(text: string): Promise<number[] | null> 
   if (!isOpenAIConfigured()) return null;
 
   const client = getOpenAIClient();
+  const { content } = prepareAiUserContent("embedding", text);
   const response = await client.embeddings.create({
     model: "text-embedding-3-small",
-    input: text.slice(0, 8000),
+    input: content.slice(0, 8000),
   });
 
   return response.data[0]?.embedding ?? null;

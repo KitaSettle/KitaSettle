@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
-import { isErrorResponse, jsonError, requireAuthUserId } from "@/lib/api/auth";
+import { isErrorResponse, jsonError } from "@/lib/api/auth";
 import { createIntegrationManager } from "@/lib/integrations";
 import { getServerRepositories } from "@/lib/repositories/server";
+import { requireAuthenticatedUser } from "@/lib/security/secure-route";
+import { folderSelectionSchema, parseJsonBody } from "@/lib/security/validation";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export async function GET() {
-  const userId = await requireAuthUserId();
+export async function GET(request: Request) {
+  const userId = await requireAuthenticatedUser(request, "integration");
   if (isErrorResponse(userId)) return userId;
 
   try {
@@ -22,18 +24,23 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
-  const userId = await requireAuthUserId();
+  const userId = await requireAuthenticatedUser(request, "integration");
   if (isErrorResponse(userId)) return userId;
 
-  const body = (await request.json()) as { folderIds?: string[] };
-  if (!Array.isArray(body.folderIds)) {
-    return jsonError("folderIds array is required");
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return jsonError("Invalid JSON body");
   }
+
+  const parsed = parseJsonBody(folderSelectionSchema, body);
+  if (!parsed.success) return jsonError(parsed.error);
 
   try {
     const repos = await getServerRepositories();
     const manager = createIntegrationManager(repos);
-    await manager.documents.setSelectedFolders(userId, body.folderIds);
+    await manager.documents.setSelectedFolders(userId, parsed.data.folderIds);
     await manager.documents.syncSelectedFolders(userId);
     const folders = await manager.documents.listFolders(userId);
     return NextResponse.json(folders);

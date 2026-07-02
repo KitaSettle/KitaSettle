@@ -1,24 +1,27 @@
 import { NextResponse } from "next/server";
-import { isErrorResponse, jsonError, requireAuthUserId } from "@/lib/api/auth";
+import { isErrorResponse, jsonError } from "@/lib/api/auth";
 import { getServerRepositories } from "@/lib/repositories/server";
+import { requireAuthenticatedUser, writeAudit } from "@/lib/security/secure-route";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-export async function GET(_request: Request, { params }: RouteParams) {
-  const userId = await requireAuthUserId();
+export async function GET(request: Request, { params }: RouteParams) {
+  const userId = await requireAuthenticatedUser(request, "mutation");
   if (isErrorResponse(userId)) return userId;
 
   const { id } = await params;
   const repos = await getServerRepositories();
   const item = await repos.knowledge.getById(userId, id);
   if (!item) return jsonError("Knowledge item not found", 404);
+
+  await writeAudit(userId, "data_access", "knowledge", "read", { itemId: id }, request);
   return NextResponse.json(item);
 }
 
 export async function PATCH(request: Request, { params }: RouteParams) {
-  const userId = await requireAuthUserId();
+  const userId = await requireAuthenticatedUser(request, "mutation");
   if (isErrorResponse(userId)) return userId;
 
   const { id } = await params;
@@ -29,13 +32,15 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   return NextResponse.json(item);
 }
 
-export async function DELETE(_request: Request, { params }: RouteParams) {
-  const userId = await requireAuthUserId();
+export async function DELETE(request: Request, { params }: RouteParams) {
+  const userId = await requireAuthenticatedUser(request, "mutation");
   if (isErrorResponse(userId)) return userId;
 
   const { id } = await params;
   const repos = await getServerRepositories();
   const deleted = await repos.knowledge.delete(userId, id);
   if (!deleted) return jsonError("Knowledge item not found", 404);
+
+  await writeAudit(userId, "deletion", "knowledge", "delete", { itemId: id }, request);
   return NextResponse.json({ success: true });
 }

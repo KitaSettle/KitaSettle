@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { isSupabaseConfigured } from "@/lib/config/env";
+import { assertServerSecretsNotPublic, env, isSupabaseConfigured } from "@/lib/config/env";
 import { MOCK_AUTH_COOKIE, MOCK_USER_ID } from "@/lib/auth/constants";
 import { createClient } from "@/lib/supabase/server";
 
 export async function requireAuthUserId(): Promise<string | NextResponse> {
+  assertServerSecretsNotPublic();
+
   if (!isSupabaseConfigured()) {
+    if (env.isProduction) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const cookieStore = await cookies();
     if (!cookieStore.get(MOCK_AUTH_COOKIE)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

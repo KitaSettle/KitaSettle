@@ -6,6 +6,8 @@ import type {
   IntegrationStatusValue,
   SyncJobRecord,
 } from "@/lib/types/executive-connect";
+import { isSupabaseConfigured } from "@/lib/config/env";
+import { createScriptClient } from "@/lib/supabase/script";
 import { nowIso } from "@/lib/utils";
 
 export interface IntegrationTokens {
@@ -46,6 +48,14 @@ export interface IntegrationRepository {
   ): Promise<void>;
 }
 
+const SAFE_CONNECTION_COLUMNS =
+  "id, user_id, provider, services, status, account_email, scopes, last_sync_at, last_sync_status, last_sync_error, metadata, created_at, updated_at";
+
+function getSecretsClient() {
+  if (!isSupabaseConfigured()) return null;
+  return createScriptClient();
+}
+
 function mapConnection(row: Record<string, unknown>): IntegrationConnection {
   return {
     id: row.id as string,
@@ -70,7 +80,7 @@ export class SupabaseIntegrationRepository implements IntegrationRepository {
   async getConnection(userId: string, provider: ConnectProvider): Promise<IntegrationConnection | null> {
     const { data, error } = await this.client
       .from("integration_connections")
-      .select("*")
+      .select(SAFE_CONNECTION_COLUMNS)
       .eq("user_id", userId)
       .eq("provider", provider)
       .maybeSingle();
@@ -81,7 +91,7 @@ export class SupabaseIntegrationRepository implements IntegrationRepository {
   async listConnections(userId: string): Promise<IntegrationConnection[]> {
     const { data, error } = await this.client
       .from("integration_connections")
-      .select("*")
+      .select(SAFE_CONNECTION_COLUMNS)
       .eq("user_id", userId);
     if (error) throw error;
     return (data ?? []).map(mapConnection);
@@ -110,21 +120,34 @@ export class SupabaseIntegrationRepository implements IntegrationRepository {
         },
         { onConflict: "user_id,provider" },
       )
-      .select("*")
+      .select(SAFE_CONNECTION_COLUMNS)
       .single();
     if (error) throw error;
     return mapConnection(data);
   }
 
   async saveTokens(userId: string, provider: ConnectProvider, tokens: IntegrationTokens): Promise<void> {
+    const secretsClient = getSecretsClient();
+    if (secretsClient) {
+      const { error: secretError } = await secretsClient.from("integration_connection_secrets").upsert(
+        {
+          user_id: userId,
+          provider,
+          access_token: tokens.accessToken,
+          refresh_token: tokens.refreshToken,
+          token_expires_at: tokens.tokenExpiresAt,
+          updated_at: nowIso(),
+        },
+        { onConflict: "user_id,provider" },
+      );
+      if (secretError) throw secretError;
+    }
+
     const { error } = await this.client.from("integration_connections").upsert(
       {
         user_id: userId,
         provider,
         status: "connected",
-        access_token: tokens.accessToken,
-        refresh_token: tokens.refreshToken,
-        token_expires_at: tokens.tokenExpiresAt,
         scopes: tokens.scopes,
         account_email: tokens.accountEmail,
         updated_at: nowIso(),
@@ -135,6 +158,33 @@ export class SupabaseIntegrationRepository implements IntegrationRepository {
   }
 
   async getTokens(userId: string, provider: ConnectProvider): Promise<IntegrationTokens | null> {
+    const secretsClient = getSecretsClient();
+    if (secretsClient) {
+      const { data, error } = await secretsClient
+        .from("integration_connection_secrets")
+        .select("access_token, refresh_token, token_expires_at")
+        .eq("user_id", userId)
+        .eq("provider", provider)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data?.access_token) return null;
+
+      const { data: connection } = await this.client
+        .from("integration_connections")
+        .select("scopes, account_email")
+        .eq("user_id", userId)
+        .eq("provider", provider)
+        .maybeSingle();
+
+      return {
+        accessToken: data.access_token as string,
+        refreshToken: (data.refresh_token as string | null) ?? null,
+        tokenExpiresAt: (data.token_expires_at as string | null) ?? null,
+        scopes: (connection?.scopes ?? []) as string[],
+        accountEmail: (connection?.account_email as string | null) ?? null,
+      };
+    }
+
     const { data, error } = await this.client
       .from("integration_connections")
       .select("access_token, refresh_token, token_expires_at, scopes, account_email, status")
@@ -153,13 +203,20 @@ export class SupabaseIntegrationRepository implements IntegrationRepository {
   }
 
   async disconnect(userId: string, provider: ConnectProvider): Promise<void> {
+    const secretsClient = getSecretsClient();
+    if (secretsClient) {
+      const { error: secretError } = await secretsClient
+        .from("integration_connection_secrets")
+        .delete()
+        .eq("user_id", userId)
+        .eq("provider", provider);
+      if (secretError) throw secretError;
+    }
+
     const { error } = await this.client
       .from("integration_connections")
       .update({
         status: "disconnected",
-        access_token: null,
-        refresh_token: null,
-        token_expires_at: null,
         updated_at: nowIso(),
       })
       .eq("user_id", userId)

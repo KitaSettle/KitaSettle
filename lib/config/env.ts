@@ -40,6 +40,7 @@ export const env = {
 } as const;
 
 export function getPublicEnv() {
+  assertServerSecretsNotPublic();
   return {
     appName: env.appName,
     appEnv: env.appEnv,
@@ -48,6 +49,21 @@ export function getPublicEnv() {
     supabaseAnonKey: env.supabaseAnonKey,
     dataMode: getDataMode(),
   };
+}
+
+export function assertServerSecretsNotPublic(): void {
+  const forbiddenPublicKeys = [
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "OPENAI_API_KEY",
+    "GOOGLE_CLIENT_SECRET",
+    "ANTHROPIC_API_KEY",
+  ];
+
+  for (const key of forbiddenPublicKeys) {
+    if (process.env[`NEXT_PUBLIC_${key}`]) {
+      throw new Error(`${key} must never be exposed via NEXT_PUBLIC_ variables.`);
+    }
+  }
 }
 
 const PLACEHOLDER_URL_MARKERS = ["placeholder", "your-project.supabase.co"];
@@ -99,7 +115,13 @@ export function isGoogleOAuthConfigured(): boolean {
 export function assertProductionEnv(): void {
   if (!env.isProduction) return;
 
+  assertServerSecretsNotPublic();
+
   if (!process.env.NEXT_PUBLIC_APP_URL?.trim()?.startsWith("http")) {
     throw new Error("NEXT_PUBLIC_APP_URL must be set for production deployments.");
+  }
+
+  if (isSupabaseConfigured() && !env.supabaseServiceRoleKey) {
+    throw new Error("SUPABASE_SERVICE_ROLE_KEY is required in production when Supabase is configured.");
   }
 }
