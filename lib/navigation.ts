@@ -3,5 +3,6 @@ import type { NavItem } from "@/lib/types";
 export const navItems: NavItem[] = [
   { label: "Today", href: "/dashboard/executive", icon: "dashboard" },
   { label: "Executive Brain", href: "/knowledge", icon: "brain" },
-  { label: "Settings", href: "/dashboard/settings", icon: "settings" },
+  { label: "My Brain", href: "/dashboard/my-brain", icon: "myBrain" },
+  { label: "Trust Center", href: "/dashboard/trust-center", icon: "trust" },
 ];

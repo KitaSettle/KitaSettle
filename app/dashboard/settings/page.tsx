@@ -1,10 +1,5 @@
-import { AppShell } from "@/components/layout/AppShell";
-import { SettingsContent } from "@/components/settings/SettingsContent";
+import { redirect } from "next/navigation";
 
-export default function SettingsPage() {
-  return (
-    <AppShell>
-      <SettingsContent />
-    </AppShell>
-  );
+export default function SettingsRedirectPage() {
+  redirect("/dashboard/trust-center");
 }

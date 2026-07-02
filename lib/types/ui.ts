@@ -51,7 +51,7 @@ export interface ExecutiveBrief {
 export type NavItem = {
   label: string;
   href: string;
-  icon: "dashboard" | "brain" | "settings";
+  icon: "dashboard" | "brain" | "myBrain" | "trust";
 };
 
 export interface TrustedSource {

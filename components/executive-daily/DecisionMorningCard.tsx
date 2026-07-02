@@ -3,37 +3,16 @@
 import { useState } from "react";
 import type { DecisionItem, DecisionLearningEventType, DecisionQueuePayload } from "@/lib/types/decision-engine";
 import { KITA_EMPTY } from "@/lib/copy/kita-messages";
+import { buildDecisionTransparency } from "@/lib/transparency/build-transparency";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SectionCard } from "@/components/dashboard/SectionCard";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { WhyPanel } from "@/components/transparency/WhyPanel";
 
 interface DecisionMorningCardProps {
   queue: DecisionQueuePayload;
   onAction?: () => void;
-}
-
-function ExplanationBlock({ item }: { item: DecisionItem }) {
-  const detail = item.explanationDetail;
-  const rows = [
-    { label: "Why this matters", value: detail.whyMatters },
-    { label: "Why now", value: detail.whyNow },
-    { label: "If ignored", value: detail.ifIgnored },
-    { label: "Expected outcome", value: detail.expectedOutcome },
-  ].filter((row) => row.value);
-
-  if (rows.length === 0) return null;
-
-  return (
-    <dl className="mt-4 space-y-3">
-      {rows.map((row) => (
-        <div key={row.label}>
-          <dt className="text-xs font-medium uppercase tracking-wide text-muted">{row.label}</dt>
-          <dd className="mt-1 text-sm text-foreground">{row.value}</dd>
-        </div>
-      ))}
-    </dl>
-  );
 }
 
 function DecisionActionItem({
@@ -54,6 +33,8 @@ function DecisionActionItem({
     onAction?.();
   }
 
+  const transparency = buildDecisionTransparency(item);
+
   return (
     <li className={`rounded-2xl border border-border bg-background ${compact ? "p-4" : "p-5"}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -66,7 +47,7 @@ function DecisionActionItem({
         <Badge variant="default">Confidence {item.confidence}%</Badge>
       </div>
 
-      {!compact && <ExplanationBlock item={item} />}
+      <WhyPanel transparency={transparency} className="mt-2" />
 
       <div className="mt-4 flex flex-wrap gap-2">
         <Button variant="ghost" onClick={() => void sendAction("accepted")}>

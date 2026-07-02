@@ -15,3 +15,6 @@ export * from "./executive-connect";
 export * from "./decision-engine";
 export * from "./intake";
 export * from "./mission-control";
+export * from "./brain-insights";
+export * from "./trust-center";
+export * from "./transparency";

@@ -1,6 +1,8 @@
 import type { ResearchQueueItem } from "@/lib/types";
+import { buildResearchTransparency } from "@/lib/transparency/build-transparency";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { WhyPanel } from "@/components/transparency/WhyPanel";
 
 interface ResearchQueueCardProps {
   item: ResearchQueueItem;
@@ -21,37 +23,24 @@ export function ResearchQueueCard({
   onReject,
   onSaveToMemory,
 }: ResearchQueueCardProps) {
+  const transparency = buildResearchTransparency(item);
+
   return (
     <article className="rounded-xl border border-border bg-surface-muted/40 p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">
-            {item.source}
-          </p>
-          <h4 className="mt-1 text-sm font-semibold leading-snug text-foreground">
-            {item.title}
-          </h4>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">{item.source}</p>
+          <h4 className="mt-1 text-sm font-semibold leading-snug text-foreground">{item.title}</h4>
         </div>
         <div className="flex flex-wrap gap-2">
           <Badge variant="default">{item.confidence}% confidence</Badge>
-          <Badge variant={importanceVariant[item.importance]}>
-            {item.importance} importance
-          </Badge>
+          <Badge variant={importanceVariant[item.importance]}>{item.importance} importance</Badge>
         </div>
       </div>
 
-      <p className="mt-4 text-sm leading-relaxed text-foreground/90">
-        {item.summary}
-      </p>
+      <p className="mt-4 text-sm leading-relaxed text-foreground/90">{item.summary}</p>
 
-      <div className="mt-4 rounded-xl bg-surface p-4">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted">
-          Why it matters
-        </p>
-        <p className="mt-2 text-sm leading-relaxed text-foreground">
-          {item.whyItMatters}
-        </p>
-      </div>
+      <WhyPanel transparency={transparency} className="mt-4" />
 
       <div className="mt-5 flex flex-wrap gap-2">
         <Button variant="primary" onClick={() => onApprove(item.id)}>
