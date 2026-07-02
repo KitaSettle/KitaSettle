@@ -14,6 +14,11 @@ import {
   EMPTY_CONNECT_SNAPSHOT,
   withConnectFallback,
 } from "@/lib/integrations/defaults";
+import { createDecisionEngine } from "@/lib/decision-engine";
+import {
+  EMPTY_DECISION_QUEUE,
+  withDecisionFallback,
+} from "@/lib/decision-engine/defaults";
 import { mapResearchQueueRecordToUi } from "@/lib/executive-brain/mappers";
 import { isSameUtcDay } from "@/lib/utils/date";
 
@@ -81,6 +86,11 @@ export async function generateIfMissing(
     personalization,
   );
 
+  const decisions = await withDecisionFallback(
+    () => createDecisionEngine(repos).generateMorningQueue(userId, connect),
+    EMPTY_DECISION_QUEUE,
+  );
+
   const recentResearch = research
     .slice()
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
@@ -103,5 +113,6 @@ export async function generateIfMissing(
       recommendations,
     },
     connect,
+    decisions,
   };
 }

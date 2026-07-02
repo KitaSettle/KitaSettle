@@ -5,6 +5,7 @@ import type {
   ExecutivePersonalizationHints,
 } from "./executive-dna";
 import type { ExecutiveConnectSnapshot } from "./executive-connect";
+import type { DecisionQueuePayload } from "./decision-engine";
 
 export interface StoredExecutiveBrief extends ExecutiveBrief {
   id: string;
@@ -24,4 +25,5 @@ export interface DailyExecutiveBriefPayload {
     recommendations: ExecutiveDNARecommendation[];
   };
   connect: ExecutiveConnectSnapshot;
+  decisions: DecisionQueuePayload;
 }

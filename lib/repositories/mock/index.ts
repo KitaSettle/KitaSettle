@@ -21,6 +21,7 @@ import { mapBriefOutputToLegacyBrief } from "@/lib/executive/brief-generator";
 import { isSameUtcDay } from "@/lib/utils/date";
 import { nowIso } from "@/lib/utils";
 import { matchesAnyField } from "@/lib/utils";
+import { MockDecisionRepository } from "./decision-mock";
 import { MockExecutiveDNARepository } from "./executive-dna-mock";
 import {
   MockCalendarRepository,
@@ -400,6 +401,7 @@ export function createMockRepositories(): Repositories {
     calendar: new MockCalendarRepository(),
     email: new MockEmailRepository(),
     documents: new MockDocumentRepository(),
+    decisions: new MockDecisionRepository(),
   };
 
   return cachedMockRepositories;

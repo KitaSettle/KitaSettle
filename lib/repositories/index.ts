@@ -46,6 +46,10 @@ import {
   type DocumentRepository,
 } from "./document-repository";
 import {
+  SupabaseDecisionRepository,
+  type DecisionRepository,
+} from "./decision-repository";
+import {
   SupabaseTrustedSourceRepository,
   type TrustedSourceRepository,
 } from "./trusted-source-repository";
@@ -64,6 +68,7 @@ export interface Repositories {
   calendar: CalendarRepository;
   email: EmailRepository;
   documents: DocumentRepository;
+  decisions: DecisionRepository;
 }
 
 export function createRepositories(client: SupabaseClient): Repositories {
@@ -81,6 +86,7 @@ export function createRepositories(client: SupabaseClient): Repositories {
     calendar: new SupabaseCalendarRepository(client),
     email: new SupabaseEmailRepository(client),
     documents: new SupabaseDocumentRepository(client),
+    decisions: new SupabaseDecisionRepository(client),
   };
 }
 
@@ -94,6 +100,7 @@ export type {
   CalendarRepository,
   EmailRepository,
   DocumentRepository,
+  DecisionRepository,
   SkillRepository,
   UserRepository,
   BrainActivityRepository,

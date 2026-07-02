@@ -30,6 +30,7 @@ export async function GET() {
       multiAgent: aiProviderMode === "openai" ? "openai" : "mock",
       auth: dataMode === "supabase" ? "supabase" : "mock",
       executiveConnect: isGoogleOAuthConfigured() ? "google-oauth-ready" : "mock-seeded",
+      decisionEngine: "operational",
     },
     limitations: [
       aiProviderMode === "mock"
