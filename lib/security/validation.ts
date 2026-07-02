@@ -24,6 +24,12 @@ export const userProfilePatchSchema = z.object({
   company: z.string().trim().max(120).optional(),
 });
 
+export const intakeJsonSchema = z.object({
+  type: z.enum(["url", "text", "paste"]),
+  content: z.string().trim().min(1).max(20_000),
+  label: z.string().trim().max(200).optional(),
+});
+
 export const knowledgeCreateSchema = z.object({
   title: z.string().trim().min(1).max(200),
   summary: z.string().trim().max(4000).optional(),

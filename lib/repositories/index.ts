@@ -50,6 +50,10 @@ import {
   type DecisionRepository,
 } from "./decision-repository";
 import {
+  SupabaseIntakeRepository,
+  type IntakeRepository,
+} from "./intake-repository";
+import {
   SupabaseTrustedSourceRepository,
   type TrustedSourceRepository,
 } from "./trusted-source-repository";
@@ -69,6 +73,7 @@ export interface Repositories {
   email: EmailRepository;
   documents: DocumentRepository;
   decisions: DecisionRepository;
+  intake: IntakeRepository;
 }
 
 export function createRepositories(client: SupabaseClient): Repositories {
@@ -87,6 +92,7 @@ export function createRepositories(client: SupabaseClient): Repositories {
     email: new SupabaseEmailRepository(client),
     documents: new SupabaseDocumentRepository(client),
     decisions: new SupabaseDecisionRepository(client),
+    intake: new SupabaseIntakeRepository(client),
   };
 }
 
@@ -101,6 +107,7 @@ export type {
   EmailRepository,
   DocumentRepository,
   DecisionRepository,
+  IntakeRepository,
   SkillRepository,
   UserRepository,
   BrainActivityRepository,

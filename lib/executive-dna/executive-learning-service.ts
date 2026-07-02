@@ -77,6 +77,40 @@ export class ExecutiveLearningService {
     );
   }
 
+  async observeDocumentUpload(
+    userId: string,
+    tags: string[],
+    projects: string[],
+    sourceLabel: string,
+  ): Promise<void> {
+    if (projects.length > 0) {
+      await this.observe(
+        userId,
+        "currentProjects",
+        projects,
+        "document_upload",
+        `Delegated content linked to projects from ${sourceLabel}.`,
+        4,
+      );
+    }
+    await this.observe(
+      userId,
+      "importantTopics",
+      tags.length > 0 ? tags : [sourceLabel],
+      "document_upload",
+      `Delegated ${sourceLabel} to Kita.`,
+      5,
+    );
+    await this.observe(
+      userId,
+      "confidenceThreshold",
+      "standard",
+      "document_upload",
+      `Processed delegated intake: ${sourceLabel}.`,
+      2,
+    );
+  }
+
   async observeBriefUsage(userId: string): Promise<void> {
     await this.observe(
       userId,

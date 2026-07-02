@@ -13,3 +13,4 @@ export * from "./daily-executive-brief";
 export * from "./executive-dna";
 export * from "./executive-connect";
 export * from "./decision-engine";
+export * from "./intake";

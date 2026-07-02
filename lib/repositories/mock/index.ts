@@ -22,6 +22,7 @@ import { isSameUtcDay } from "@/lib/utils/date";
 import { nowIso } from "@/lib/utils";
 import { matchesAnyField } from "@/lib/utils";
 import { MockDecisionRepository } from "./decision-mock";
+import { MockIntakeRepository } from "../intake-repository";
 import { MockExecutiveDNARepository } from "./executive-dna-mock";
 import {
   MockCalendarRepository,
@@ -402,6 +403,7 @@ export function createMockRepositories(): Repositories {
     email: new MockEmailRepository(),
     documents: new MockDocumentRepository(),
     decisions: new MockDecisionRepository(),
+    intake: new MockIntakeRepository(),
   };
 
   return cachedMockRepositories;

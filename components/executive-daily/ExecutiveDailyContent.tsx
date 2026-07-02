@@ -10,6 +10,7 @@ import { ConnectStatusCard } from "./ConnectStatusCard";
 import { DeadlinesCard } from "./DeadlinesCard";
 import { DecisionMorningCard } from "./DecisionMorningCard";
 import { DecisionTimelineCard } from "./DecisionTimelineCard";
+import { GiveToKita } from "@/components/intake/GiveToKita";
 import { DocumentsReviewCard } from "./DocumentsReviewCard";
 import { ExecutiveBriefCard } from "./ExecutiveBriefCard";
 import { ImportantEmailsCard } from "./ImportantEmailsCard";
@@ -60,6 +61,7 @@ export function ExecutiveDailyContent({ name, data }: ExecutiveDailyContentProps
       <DashboardHeader name={name} />
 
       <div className="space-y-6">
+        <GiveToKita />
         <DecisionMorningCard queue={decisions} onAction={handleDecisionAction} />
 
         {!showAll && (
