@@ -3,6 +3,7 @@ import type { IntakeAnalysis } from "@/lib/types/intake";
 import type { ExecutiveDNAProfile } from "@/lib/types/executive-dna";
 import { isOpenAIConfigured } from "@/lib/config/env";
 import { getOpenAIClient, getOpenAIModel } from "@/lib/ai/openai-client";
+import { recordAiUsage } from "@/lib/ai/usage-tracker";
 import { prepareAiUserContent, sanitizeStructuredPayload } from "@/lib/security/sanitize";
 
 const CONFIDENCE_THRESHOLD = 70;
@@ -99,11 +100,23 @@ export async function analyzeIntakeContent(
       messages.push({ role: "user", content: userContent });
     }
 
+    const started = Date.now();
     const response = await client.chat.completions.create({
       model: getOpenAIModel(),
       temperature: 0.2,
       response_format: { type: "json_object" },
       messages: messages as never,
+    });
+
+    const usage = response.usage;
+    void recordAiUsage({
+      userId: null,
+      feature: "intake_analysis",
+      model: getOpenAIModel(),
+      promptTokens: usage?.prompt_tokens ?? 0,
+      completionTokens: usage?.completion_tokens ?? 0,
+      estimatedCostUsd: 0,
+      responseTimeMs: Date.now() - started,
     });
 
     const parsed = JSON.parse(response.choices[0]?.message?.content ?? "{}") as Partial<IntakeAnalysis>;

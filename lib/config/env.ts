@@ -37,6 +37,9 @@ export const env = {
   googleAiApiKey: readServer("GOOGLE_AI_API_KEY"),
   googleClientId: readServer("GOOGLE_CLIENT_ID"),
   googleClientSecret: readServer("GOOGLE_CLIENT_SECRET"),
+
+  adminUserIds: readServer("ADMIN_USER_IDS"),
+  adminEmails: readServer("ADMIN_EMAILS"),
 } as const;
 
 export function getPublicEnv() {
