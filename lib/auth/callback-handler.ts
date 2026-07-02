@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { ensureUserBootstrapped } from "@/lib/auth/bootstrap-user";
 import { enforceRateLimit, writeAudit } from "@/lib/security/secure-route";
 
 const DEFAULT_NEXT = "/dashboard/executive";
@@ -39,6 +40,19 @@ export async function handleAuthCallback(request: Request): Promise<NextResponse
     const isRecovery = type === "recovery" || next === RESET_PASSWORD_PATH;
     const errorParam = isRecovery ? "recovery" : "auth";
     return NextResponse.redirect(`${origin}/login?error=${errorParam}`);
+  }
+
+  const metadataName =
+    typeof data.user.user_metadata?.name === "string"
+      ? data.user.user_metadata.name
+      : typeof data.user.user_metadata?.full_name === "string"
+        ? data.user.user_metadata.full_name
+        : null;
+
+  try {
+    await ensureUserBootstrapped(data.user.id, data.user.email, metadataName);
+  } catch (bootstrapError) {
+    console.error("[KitaSettle] Failed to bootstrap user after auth callback:", bootstrapError);
   }
 
   const redirectPath = resolveRedirectPath(next, type);

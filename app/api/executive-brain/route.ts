@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { isErrorResponse } from "@/lib/api/auth";
+import { requireAuthUserReady } from "@/lib/auth/ensure-user-ready";
 import { getServerRepositories } from "@/lib/repositories/server";
 import { assembleExecutiveBrainData } from "@/lib/executive-brain/assemble-brain-data";
 import { requireAuthenticatedUser } from "@/lib/security/secure-route";
 
 export async function GET(request: Request) {
-  const userId = await requireAuthenticatedUser(request, "mutation");
+  const authUserId = await requireAuthenticatedUser(request, "mutation");
+  if (isErrorResponse(authUserId)) return authUserId;
+
+  const userId = await requireAuthUserReady();
   if (isErrorResponse(userId)) return userId;
 
   try {

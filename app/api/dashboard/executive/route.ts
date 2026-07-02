@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isErrorResponse } from "@/lib/api/auth";
+import { requireAuthUserReady } from "@/lib/auth/ensure-user-ready";
 import { generateIfMissing } from "@/lib/executive/daily-brief-service";
 import { getServerRepositories } from "@/lib/repositories/server";
 import { requireAuthenticatedUser, writeAudit } from "@/lib/security/secure-route";
@@ -8,7 +9,10 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
-  const userId = await requireAuthenticatedUser(request, "ai");
+  const authUserId = await requireAuthenticatedUser(request, "ai");
+  if (isErrorResponse(authUserId)) return authUserId;
+
+  const userId = await requireAuthUserReady();
   if (isErrorResponse(userId)) return userId;
 
   try {

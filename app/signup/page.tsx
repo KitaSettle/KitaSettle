@@ -44,7 +44,7 @@ export default function SignUpPage() {
       return;
     }
 
-    router.push("/dashboard/executive");
+    router.push("/dashboard/discovery");
   }
 
   if (!ready) {

@@ -35,12 +35,15 @@ export function ExecutiveDailyLoader() {
 
         const user = (await userResponse.json()) as { name: string };
 
+        let needsDiscovery = true;
         if (statusResponse.ok) {
           const status = (await statusResponse.json()) as { needsDiscovery?: boolean };
-          if (status.needsDiscovery) {
-            router.replace("/dashboard/discovery");
-            return;
-          }
+          needsDiscovery = status.needsDiscovery !== false;
+        }
+
+        if (needsDiscovery) {
+          router.replace("/dashboard/discovery");
+          return;
         }
 
         const briefResponse = await fetch("/api/dashboard/executive");

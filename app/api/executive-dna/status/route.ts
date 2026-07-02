@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { isErrorResponse, requireAuthUserId } from "@/lib/api/auth";
+import { isErrorResponse } from "@/lib/api/auth";
+import { requireAuthUserReady } from "@/lib/auth/ensure-user-ready";
 import { createExecutiveDNAEngine } from "@/lib/executive-dna";
 import {
   DEFAULT_EXECUTIVE_DNA_STATUS,
@@ -11,7 +12,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET() {
-  const userId = await requireAuthUserId();
+  const userId = await requireAuthUserReady();
   if (isErrorResponse(userId)) return userId;
 
   try {

@@ -20,6 +20,7 @@ import {
   withDecisionFallback,
 } from "@/lib/decision-engine/defaults";
 import { mapResearchQueueRecordToUi } from "@/lib/executive-brain/mappers";
+import { DISCOVERY_CONFIDENCE_TARGET } from "@/lib/types/executive-dna";
 import { isSameUtcDay } from "@/lib/utils/date";
 
 export async function generateIfMissing(
@@ -27,6 +28,15 @@ export async function generateIfMissing(
   repos: Repositories,
 ): Promise<DailyExecutiveBriefPayload> {
   const dnaEngine = createExecutiveDNAEngine(repos);
+  const discoveryStatus = await withExecutiveDnaFallback(
+    () => dnaEngine.getStatus(userId),
+    DEFAULT_EXECUTIVE_DNA_STATUS,
+  );
+
+  if (discoveryStatus.overallConfidence < DISCOVERY_CONFIDENCE_TARGET) {
+    throw new Error("Discovery interview required before loading today's brief.");
+  }
+
   const today = new Date();
   let brief = await repos.executiveBriefs.getBriefForDate(userId, today);
   let generatedToday = false;

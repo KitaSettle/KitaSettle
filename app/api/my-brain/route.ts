@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { isErrorResponse, requireAuthUserId } from "@/lib/api/auth";
+import { isErrorResponse } from "@/lib/api/auth";
+import { requireAuthUserReady } from "@/lib/auth/ensure-user-ready";
 import { createBrainInsightsService } from "@/lib/brain-insights";
 import { getServerRepositories } from "@/lib/repositories/server";
 import { getTransparencyRepository } from "@/lib/repositories/transparency-factory";
@@ -8,7 +9,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET() {
-  const userId = await requireAuthUserId();
+  const userId = await requireAuthUserReady();
   if (isErrorResponse(userId)) return userId;
 
   try {

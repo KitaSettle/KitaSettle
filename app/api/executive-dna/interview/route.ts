@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isErrorResponse, jsonError } from "@/lib/api/auth";
+import { requireAuthUserReady } from "@/lib/auth/ensure-user-ready";
 import { createExecutiveDNAEngine } from "@/lib/executive-dna";
 import { getServerRepositories } from "@/lib/repositories/server";
 import { requireAuthenticatedUser, writeAudit } from "@/lib/security/secure-route";
@@ -12,10 +13,13 @@ export async function GET(request: Request) {
   const userId = await requireAuthenticatedUser(request, "mutation");
   if (isErrorResponse(userId)) return userId;
 
+  const readyUserId = await requireAuthUserReady();
+  if (isErrorResponse(readyUserId)) return readyUserId;
+
   try {
     const repos = await getServerRepositories();
     const engine = createExecutiveDNAEngine(repos);
-    const response = await engine.interviewService.start(userId);
+    const response = await engine.interviewService.start(readyUserId);
     await writeAudit(userId, "data_access", "executive_dna", "interview_start", {}, request);
     return NextResponse.json(response);
   } catch (error) {
@@ -28,6 +32,9 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const userId = await requireAuthenticatedUser(request, "ai");
   if (isErrorResponse(userId)) return userId;
+
+  const readyUserId = await requireAuthUserReady();
+  if (isErrorResponse(readyUserId)) return readyUserId;
 
   let body: unknown;
   try {
@@ -42,7 +49,7 @@ export async function POST(request: Request) {
   try {
     const repos = await getServerRepositories();
     const engine = createExecutiveDNAEngine(repos);
-    const response = await engine.interviewService.answer(userId, parsed.data.answer);
+    const response = await engine.interviewService.answer(readyUserId, parsed.data.answer);
     await writeAudit(userId, "ai_generation", "executive_dna", "interview_answer", {}, request);
     return NextResponse.json(response);
   } catch (error) {
