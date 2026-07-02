@@ -14,7 +14,12 @@ import type {
 } from "@/lib/types/research";
 import type { SkillDefinition } from "@/lib/types/skills";
 import type { BrainActivityItem, ExecutiveBrief, User } from "@/lib/types/ui";
+import type { StoredExecutiveBrief } from "@/lib/types/daily-executive-brief";
 import type { AIExecutiveBriefOutput, ExecutiveBriefHistoryEntry } from "@/lib/ai/types";
+import { mapAIBriefToExecutiveBriefOutput } from "@/lib/ai/generate-brief-action";
+import { mapBriefOutputToLegacyBrief } from "@/lib/executive/brief-generator";
+import { isSameUtcDay } from "@/lib/utils/date";
+import { nowIso } from "@/lib/utils";
 import { matchesAnyField } from "@/lib/utils";
 import type { Repositories } from "../index";
 import {
@@ -225,6 +230,9 @@ class MockResearchQueueRepository implements ResearchQueueRepository {
 
 class MockExecutiveBriefRepository implements ExecutiveBriefRepository {
   private activeBrief = clone(mockExecutiveBrief);
+  private briefId = "brief-1";
+  private updatedAt = new Date().toISOString();
+  private createdAt = this.updatedAt;
   private history: ExecutiveBriefHistoryEntry[] = [
     {
       id: "brief-1",
@@ -236,8 +244,26 @@ class MockExecutiveBriefRepository implements ExecutiveBriefRepository {
     },
   ];
 
+  private toStoredBrief(): StoredExecutiveBrief {
+    return {
+      ...clone(this.activeBrief),
+      id: this.briefId,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+    };
+  }
+
   async getActive(_userId: string): Promise<ExecutiveBrief | null> {
     return clone(this.activeBrief);
+  }
+
+  async getLatestBrief(_userId: string): Promise<StoredExecutiveBrief | null> {
+    return this.toStoredBrief();
+  }
+
+  async getBriefForDate(_userId: string, date: Date): Promise<StoredExecutiveBrief | null> {
+    if (!isSameUtcDay(this.updatedAt, date)) return null;
+    return this.toStoredBrief();
   }
 
   async getAll(_userId: string): Promise<ExecutiveBrief[]> {
@@ -245,11 +271,12 @@ class MockExecutiveBriefRepository implements ExecutiveBriefRepository {
   }
 
   async getById(_userId: string, id: string): Promise<ExecutiveBrief | null> {
-    return id === "brief-1" ? clone(this.activeBrief) : null;
+    return id === this.briefId ? clone(this.activeBrief) : null;
   }
 
   async create(_userId: string, brief: ExecutiveBrief): Promise<ExecutiveBrief> {
     this.activeBrief = clone(brief);
+    this.updatedAt = nowIso();
     return clone(this.activeBrief);
   }
 
@@ -258,33 +285,22 @@ class MockExecutiveBriefRepository implements ExecutiveBriefRepository {
     id: string,
     brief: Partial<ExecutiveBrief>,
   ): Promise<ExecutiveBrief | null> {
-    if (id !== "brief-1") return null;
+    if (id !== this.briefId) return null;
     this.activeBrief = { ...this.activeBrief, ...brief };
+    this.updatedAt = nowIso();
     return clone(this.activeBrief);
   }
 
-  async saveGenerated(_userId: string, brief: AIExecutiveBriefOutput): Promise<void> {
-    this.activeBrief = {
-      summary: brief.executiveSummary,
-      confidenceScore: brief.confidence,
-      recommendedFocus: brief.recommendedActions[0] ?? "Review priorities",
-      priorities: brief.topPriorities.map((priority, index) => ({
-        id: priority.id ?? `p-${index + 1}`,
-        title: priority.title,
-        description: priority.description,
-      })),
-      decisions: [],
-      risks: brief.risks.map((risk, index) => ({
-        id: risk.id ?? `r-${index + 1}`,
-        title: risk.title,
-      })),
-      opportunities: brief.opportunities.map((opportunity, index) => ({
-        id: opportunity.id ?? `o-${index + 1}`,
-        title: opportunity.title,
-      })),
-      aiPrepared: [],
-      workloadEstimate: brief.estimatedReadingSaved,
-    };
+  async saveGenerated(userId: string, brief: AIExecutiveBriefOutput): Promise<void> {
+    await this.saveBrief(userId, brief);
+  }
+
+  async saveBrief(_userId: string, brief: AIExecutiveBriefOutput): Promise<StoredExecutiveBrief> {
+    this.activeBrief = mapBriefOutputToLegacyBrief(mapAIBriefToExecutiveBriefOutput(brief));
+    this.briefId = brief.id;
+    this.updatedAt = brief.generatedAt;
+    this.createdAt = this.createdAt || brief.generatedAt;
+    return this.toStoredBrief();
   }
 
   async getHistory(_userId: string): Promise<ExecutiveBriefHistoryEntry[]> {

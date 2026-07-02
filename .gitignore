@@ -40,3 +40,5 @@ next-env.d.ts
 
 # executive brief runtime store
 /data/store/
+
+.vercel

@@ -32,7 +32,7 @@ export function Sidebar({ onNavigate, onLogout }: SidebarProps) {
   return (
     <div className="flex h-full flex-col">
       <div className="border-b border-border px-6 py-6">
-        <Link href="/dashboard" className="block" onClick={onNavigate}>
+        <Link href="/dashboard/executive" className="block" onClick={onNavigate}>
           <span className="text-lg font-semibold tracking-tight text-foreground">
             KitaSettle
           </span>
@@ -43,7 +43,9 @@ export function Sidebar({ onNavigate, onLogout }: SidebarProps) {
       <nav className="flex-1 px-4 py-6">
         <ul className="space-y-1">
           {navItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive =
+              pathname === item.href ||
+              (item.href === "/dashboard/executive" && pathname.startsWith("/dashboard"));
 
             return (
               <li key={item.href}>

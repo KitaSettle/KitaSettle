@@ -1,10 +1,5 @@
-import { AppShell } from "@/components/layout/AppShell";
-import { DashboardLoader } from "@/components/dashboard/DashboardLoader";
+import { redirect } from "next/navigation";
 
 export default function DashboardPage() {
-  return (
-    <AppShell>
-      <DashboardLoader />
-    </AppShell>
-  );
+  redirect("/dashboard/executive");
 }

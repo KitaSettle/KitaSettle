@@ -9,7 +9,7 @@ export default function HomePage() {
 
   useEffect(() => {
     void isAuthenticated().then((authenticated: boolean) => {
-      router.replace(authenticated ? "/dashboard" : "/login");
+      router.replace(authenticated ? "/dashboard/executive" : "/login");
     });
   }, [router]);
 

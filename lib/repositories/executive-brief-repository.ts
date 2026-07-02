@@ -8,10 +8,14 @@ import type {
   Priority,
   Risk,
 } from "@/lib/types/ui";
+import type { StoredExecutiveBrief } from "@/lib/types/daily-executive-brief";
 import type {
   AIExecutiveBriefOutput,
   ExecutiveBriefHistoryEntry,
 } from "@/lib/ai/types";
+import { getUtcDayBounds } from "@/lib/utils/date";
+import { mapAIBriefToExecutiveBriefOutput } from "@/lib/ai/generate-brief-action";
+import { mapBriefOutputToLegacyBrief } from "@/lib/executive/brief-generator";
 
 export interface ExecutiveBriefRepository {
   getActive(userId: string): Promise<ExecutiveBrief | null>;
@@ -21,6 +25,9 @@ export interface ExecutiveBriefRepository {
   update(userId: string, id: string, brief: Partial<ExecutiveBrief>): Promise<ExecutiveBrief | null>;
   saveGenerated(userId: string, brief: AIExecutiveBriefOutput): Promise<void>;
   getHistory(userId: string): Promise<ExecutiveBriefHistoryEntry[]>;
+  getLatestBrief(userId: string): Promise<StoredExecutiveBrief | null>;
+  saveBrief(userId: string, brief: AIExecutiveBriefOutput): Promise<StoredExecutiveBrief>;
+  getBriefForDate(userId: string, date: Date): Promise<StoredExecutiveBrief | null>;
 }
 
 function parseJsonArray<T>(value: unknown, fallback: T[] = []): T[] {
@@ -42,21 +49,51 @@ export function mapBriefRow(row: DbExecutiveBrief): ExecutiveBrief {
   };
 }
 
+export function mapStoredBriefRow(row: DbExecutiveBrief): StoredExecutiveBrief {
+  return {
+    ...mapBriefRow(row),
+    id: row.id,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 export class SupabaseExecutiveBriefRepository implements ExecutiveBriefRepository {
   constructor(private client: SupabaseClient) {}
 
   async getActive(userId: string): Promise<ExecutiveBrief | null> {
+    const stored = await this.getLatestBrief(userId);
+    return stored;
+  }
+
+  async getLatestBrief(userId: string): Promise<StoredExecutiveBrief | null> {
     const { data, error } = await this.client
       .from("executive_briefs")
       .select("*")
       .eq("user_id", userId)
-      .eq("is_active", true)
       .order("updated_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
     if (error) throw error;
-    return data ? mapBriefRow(data as DbExecutiveBrief) : null;
+    return data ? mapStoredBriefRow(data as DbExecutiveBrief) : null;
+  }
+
+  async getBriefForDate(userId: string, date: Date): Promise<StoredExecutiveBrief | null> {
+    const { start, end } = getUtcDayBounds(date);
+
+    const { data, error } = await this.client
+      .from("executive_briefs")
+      .select("*")
+      .eq("user_id", userId)
+      .gte("updated_at", start)
+      .lt("updated_at", end)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data ? mapStoredBriefRow(data as DbExecutiveBrief) : null;
   }
 
   async getAll(userId: string): Promise<ExecutiveBrief[]> {
@@ -143,37 +180,38 @@ export class SupabaseExecutiveBriefRepository implements ExecutiveBriefRepositor
   }
 
   async saveGenerated(userId: string, brief: AIExecutiveBriefOutput): Promise<void> {
+    await this.saveBrief(userId, brief);
+  }
+
+  async saveBrief(userId: string, brief: AIExecutiveBriefOutput): Promise<StoredExecutiveBrief> {
     await this.client
       .from("executive_briefs")
       .update({ is_active: false })
       .eq("user_id", userId)
       .eq("is_active", true);
 
-    const { error } = await this.client.from("executive_briefs").insert({
-      user_id: userId,
-      summary: brief.executiveSummary,
-      confidence_score: brief.confidence,
-      recommended_focus: brief.recommendedActions[0] ?? "Review priorities",
-      priorities: brief.topPriorities.map((priority, index) => ({
-        id: priority.id ?? `p-${index + 1}`,
-        title: priority.title,
-        description: priority.description,
-      })),
-      decisions: [],
-      risks: brief.risks.map((risk, index) => ({
-        id: risk.id ?? `r-${index + 1}`,
-        title: risk.title,
-      })),
-      opportunities: brief.opportunities.map((opportunity, index) => ({
-        id: opportunity.id ?? `o-${index + 1}`,
-        title: opportunity.title,
-      })),
-      ai_prepared: [],
-      workload_estimate: brief.estimatedReadingSaved,
-      is_active: true,
-    });
+    const legacy = mapBriefOutputToLegacyBrief(mapAIBriefToExecutiveBriefOutput(brief));
+
+    const { data, error } = await this.client
+      .from("executive_briefs")
+      .insert({
+        user_id: userId,
+        summary: brief.executiveSummary,
+        confidence_score: brief.confidence,
+        recommended_focus: brief.recommendedActions[0] ?? "Review priorities",
+        priorities: legacy.priorities,
+        decisions: legacy.decisions,
+        risks: legacy.risks,
+        opportunities: legacy.opportunities,
+        ai_prepared: legacy.aiPrepared,
+        workload_estimate: brief.estimatedReadingSaved,
+        is_active: true,
+      })
+      .select("*")
+      .single();
 
     if (error) throw error;
+    return mapStoredBriefRow(data as DbExecutiveBrief);
   }
 
   async getHistory(userId: string): Promise<ExecutiveBriefHistoryEntry[]> {

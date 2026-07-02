@@ -21,7 +21,7 @@ export default function LoginPage() {
   useEffect(() => {
     void isAuthenticated().then((authenticated: boolean) => {
       if (authenticated) {
-        router.replace("/dashboard");
+        router.replace("/dashboard/executive");
         return;
       }
       setReady(true);
@@ -43,7 +43,7 @@ export default function LoginPage() {
       }
     }
 
-    router.push("/dashboard");
+    router.push("/dashboard/executive");
   }
 
   async function handleOAuth(provider: "google" | "github") {
