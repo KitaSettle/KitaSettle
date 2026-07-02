@@ -58,6 +58,18 @@ export async function signInWithOAuth(_provider: "google" | "github") {
   };
 }
 
+export async function resetPasswordForEmail(email: string) {
+  if (!email.includes("@")) {
+    return { data: null, error: { message: "Invalid email." } };
+  }
+
+  return { data: {}, error: null };
+}
+
+export async function updatePassword(_password: string) {
+  return { data: { user: readSession() }, error: null };
+}
+
 export async function signOut() {
   clearSession();
 }

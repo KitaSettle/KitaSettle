@@ -2,7 +2,14 @@
 
 import { isSupabaseConfigured } from "@/lib/config/env";
 import { createClient } from "@/lib/supabase/client";
+import type { AccountHint } from "./errors";
 import * as mockAuth from "./mock-client";
+
+export function getAuthCallbackUrl(next = "/dashboard/executive"): string {
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const params = new URLSearchParams({ next });
+  return `${origin}/auth/callback?${params.toString()}`;
+}
 
 export async function getSession() {
   if (!isSupabaseConfigured()) {
@@ -57,9 +64,48 @@ export async function signInWithOAuth(provider: "google" | "github") {
   return supabase.auth.signInWithOAuth({
     provider,
     options: {
-      redirectTo: `${window.location.origin}/api/auth/callback`,
+      redirectTo: getAuthCallbackUrl("/dashboard/executive"),
     },
   });
+}
+
+export async function resetPasswordForEmail(email: string) {
+  if (!isSupabaseConfigured()) {
+    return mockAuth.resetPasswordForEmail(email);
+  }
+
+  const supabase = createClient();
+  return supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: getAuthCallbackUrl("/reset-password"),
+  });
+}
+
+export async function updatePassword(password: string) {
+  if (!isSupabaseConfigured()) {
+    return mockAuth.updatePassword(password);
+  }
+
+  const supabase = createClient();
+  return supabase.auth.updateUser({ password });
+}
+
+export async function fetchAccountHint(email: string): Promise<AccountHint | null> {
+  if (!isSupabaseConfigured()) {
+    return null;
+  }
+
+  try {
+    const response = await fetch("/api/auth/account-hint", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+
+    if (!response.ok) return null;
+    return (await response.json()) as AccountHint;
+  } catch {
+    return null;
+  }
 }
 
 export async function signOut() {

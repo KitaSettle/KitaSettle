@@ -12,7 +12,7 @@ This document describes how KitaSettle protects user data, authentication bounda
 
 ## Authentication Model
 
-- **Production:** Supabase Auth (email/OAuth). All API routes except `/api/health`, `/api/auth/callback`, and `/api/integrations/google/callback` require an authenticated session.
+- **Production:** Supabase Auth (email/OAuth). All API routes except `/api/health`, `/api/auth/callback`, `/api/auth/account-hint`, and `/api/integrations/google/callback` require an authenticated session.
 - **Development:** Mock auth is available when Supabase is not configured. Mock auth is **disabled in production**.
 - **Session handling:** Sessions are managed by Supabase SSR cookies. API routes call `requireAuthUserId()` or `requireAuthenticatedUser()` before accessing user data.
 

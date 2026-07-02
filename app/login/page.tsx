@@ -1,23 +1,52 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { FormEvent, Suspense, useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
+  fetchAccountHint,
+  getLoginErrorMessage,
   isAuthenticated,
   signInWithEmail,
   signInWithOAuth,
-  signUpWithEmail,
 } from "@/lib/auth";
 import { Button } from "@/components/ui/Button";
 import { KitaWorking } from "@/components/ui/KitaWorking";
 
+const URL_ERROR_MESSAGES: Record<string, string> = {
+  auth: "Sign-in was interrupted or the link expired. Please try again.",
+  recovery: "Your password reset link has expired. Request a new one.",
+};
+
 export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-background">
+          <KitaWorking context="auth" compact />
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    const urlError = searchParams.get("error");
+    if (urlError && URL_ERROR_MESSAGES[urlError]) {
+      setError(URL_ERROR_MESSAGES[urlError]);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     void isAuthenticated().then((authenticated: boolean) => {
@@ -36,12 +65,10 @@ export default function LoginPage() {
 
     const signInResult = await signInWithEmail(email, password);
     if (signInResult.error) {
-      const signUpResult = await signUpWithEmail(email, password);
-      if (signUpResult.error) {
-        setError("We couldn't sign you in. Please check your details and try again.");
-        setBusy(false);
-        return;
-      }
+      const accountHint = await fetchAccountHint(email);
+      setError(getLoginErrorMessage(signInResult.error, accountHint));
+      setBusy(false);
+      return;
     }
 
     router.push("/dashboard/executive");
@@ -95,9 +122,17 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-foreground">
-                Password
-              </label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="password" className="block text-sm font-medium text-foreground">
+                  Password
+                </label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-accent underline-offset-4 hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <input
                 id="password"
                 type="password"
@@ -130,8 +165,11 @@ export default function LoginPage() {
             </Button>
           </div>
 
-          <p className="mt-8 text-center text-xs leading-relaxed text-muted">
-            First time here? Your account is created automatically when you sign in.
+          <p className="mt-8 text-center text-sm text-muted">
+            New to KitaSettle?{" "}
+            <Link href="/signup" className="text-accent underline-offset-4 hover:underline">
+              Create account
+            </Link>
           </p>
         </div>
       </div>

@@ -40,8 +40,10 @@ In **Authentication → Providers**:
 
 In **Authentication → URL Configuration**, add redirect URLs:
 
-- `http://localhost:3000/api/auth/callback` (local)
-- `https://YOUR_VERCEL_DOMAIN/api/auth/callback` (production)
+- `http://localhost:3000/api/auth/callback` (local, legacy)
+- `http://localhost:3000/auth/callback` (local)
+- `https://YOUR_VERCEL_DOMAIN/api/auth/callback` (production, legacy)
+- `https://YOUR_VERCEL_DOMAIN/auth/callback` (production)
 
 Site URL should match your primary app URL.
 
