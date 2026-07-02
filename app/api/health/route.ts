@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
-import { env, getDataMode, isSupabaseConfigured } from "@/lib/config/env";
+import { env, getAIProviderMode, getDataMode, isOpenAIConfigured, isSupabaseConfigured } from "@/lib/config/env";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET() {
   const dataMode = getDataMode();
+  const aiProviderMode = getAIProviderMode();
 
   return NextResponse.json({
     status: "ok",
@@ -14,6 +15,8 @@ export async function GET() {
     nodeEnv: env.nodeEnv,
     dataMode,
     supabaseConfigured: isSupabaseConfigured(),
+    aiProvider: aiProviderMode,
+    openaiConfigured: isOpenAIConfigured(),
     timestamp: new Date().toISOString(),
     modules: {
       ui: "operational",
@@ -22,12 +25,14 @@ export async function GET() {
       memoryEngine: dataMode,
       researchPipeline: dataMode,
       trustedSources: dataMode,
-      aiProvider: "mock",
-      multiAgent: "mock",
+      aiProvider: aiProviderMode,
+      multiAgent: aiProviderMode === "openai" ? "openai" : "mock",
       auth: dataMode === "supabase" ? "supabase" : "mock",
     },
     limitations: [
-      "AI responses are mock-generated (no OpenAI yet)",
+      aiProviderMode === "mock"
+        ? "AI responses use MockAIProvider — set OPENAI_API_KEY for live OpenAI"
+        : "Executive briefs and research summaries use OpenAI",
       "Research crawler uses seeded content only",
       dataMode === "mock"
         ? "Running in mock data mode — configure Supabase env vars for persistence"

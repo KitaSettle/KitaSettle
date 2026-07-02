@@ -1,9 +1,15 @@
 export type { AIProvider } from "./AIProvider";
 export * from "./types";
 export { MockAIProvider, mockAIProvider } from "./MockAIProvider";
-export { OpenAIProvider } from "./OpenAIProvider";
+export { OpenAIProvider, openAIProvider } from "./OpenAIProvider";
 export { ClaudeProvider } from "./ClaudeProvider";
 export { GeminiProvider } from "./GeminiProvider";
+export {
+  getAIProvider,
+  getAIProviderMode,
+  type AIProviderMode,
+} from "./get-ai-provider";
+export { summarizeResearchDocument } from "./research-summary";
 export {
   ExecutiveBriefHistoryStore,
   createExecutiveBriefHistoryStore,

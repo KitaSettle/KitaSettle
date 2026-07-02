@@ -32,6 +32,7 @@ export const env = {
   supabaseServiceRoleKey: readServer("SUPABASE_SERVICE_ROLE_KEY"),
 
   openaiApiKey: readServer("OPENAI_API_KEY"),
+  openaiModel: readServer("OPENAI_MODEL") ?? "gpt-4o-mini",
   anthropicApiKey: readServer("ANTHROPIC_API_KEY"),
   googleAiApiKey: readServer("GOOGLE_AI_API_KEY"),
 } as const;
@@ -65,6 +66,22 @@ export type DataMode = "supabase" | "mock";
 
 export function getDataMode(): DataMode {
   return isSupabaseConfigured() ? "supabase" : "mock";
+}
+
+const PLACEHOLDER_OPENAI_KEY_MARKERS = ["placeholder", "your-openai-api-key", "sk-your"];
+
+export function isOpenAIConfigured(): boolean {
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  if (!apiKey) return false;
+  if (PLACEHOLDER_OPENAI_KEY_MARKERS.some((marker) => apiKey.includes(marker))) return false;
+  if (!apiKey.startsWith("sk-")) return false;
+  return true;
+}
+
+export type AIProviderMode = "openai" | "mock";
+
+export function getAIProviderMode(): AIProviderMode {
+  return isOpenAIConfigured() ? "openai" : "mock";
 }
 
 export function assertProductionEnv(): void {

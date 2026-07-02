@@ -120,7 +120,7 @@ export interface ExecutiveSummariser {
   summarise(
     document: ExtractedDocument,
     classification: ClassifiedContent,
-  ): ExecutiveSummary;
+  ): Promise<ExecutiveSummary>;
 }
 
 export interface ResearchReviewer {

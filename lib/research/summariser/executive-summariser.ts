@@ -5,6 +5,8 @@ import type {
   ExtractedDocument,
 } from "@/lib/types/live-research";
 import type { Importance } from "@/lib/types/common";
+import { isOpenAIConfigured } from "@/lib/config/env";
+import { summarizeResearchDocument } from "@/lib/ai/research-summary";
 
 function scoreConfidence(document: ExtractedDocument, classification: ClassifiedContent): number {
   let score = 72;
@@ -23,10 +25,10 @@ function scoreImportance(classification: ClassifiedContent): Importance {
 }
 
 export class MockExecutiveSummariser implements ExecutiveSummariser {
-  summarise(
+  async summarise(
     document: ExtractedDocument,
     classification: ClassifiedContent,
-  ): ExecutiveSummary {
+  ): Promise<ExecutiveSummary> {
     const importance = scoreImportance(classification);
     const confidence = scoreConfidence(document, classification);
 
@@ -49,4 +51,26 @@ export class MockExecutiveSummariser implements ExecutiveSummariser {
   }
 }
 
-export const executiveSummariser = new MockExecutiveSummariser();
+export class OpenAIExecutiveSummariser implements ExecutiveSummariser {
+  async summarise(
+    document: ExtractedDocument,
+    classification: ClassifiedContent,
+  ): Promise<ExecutiveSummary> {
+    return summarizeResearchDocument({
+      title: document.title,
+      sourceName: document.sourceName,
+      category: classification.category,
+      subcategory: classification.subcategory,
+      tags: classification.tags,
+      cleanText: document.cleanText,
+    });
+  }
+}
+
+export function createExecutiveSummariser(): ExecutiveSummariser {
+  return isOpenAIConfigured()
+    ? new OpenAIExecutiveSummariser()
+    : new MockExecutiveSummariser();
+}
+
+export const executiveSummariser = createExecutiveSummariser();

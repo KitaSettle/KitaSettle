@@ -1,1 +1,1 @@
-export { MockExecutiveSummariser, executiveSummariser } from "./executive-summariser";
+export { MockExecutiveSummariser, OpenAIExecutiveSummariser, createExecutiveSummariser, executiveSummariser } from "./executive-summariser";

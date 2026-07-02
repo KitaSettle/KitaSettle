@@ -14,7 +14,7 @@ import { sourceFetcher } from "../fetcher/mock-source-fetcher";
 import { documentExtractor } from "../extractor/document-extractor";
 import { duplicateDetector } from "../duplicate/duplicate-detector";
 import { buildClassifiedContent, contentClassifier } from "../classifier/content-classifier";
-import { executiveSummariser } from "../summariser/executive-summariser";
+import { createExecutiveSummariser } from "../summariser/executive-summariser";
 import { createResearchReviewer } from "../reviewer/research-reviewer";
 import { localJsonStore } from "../store/local-json-store";
 
@@ -22,6 +22,7 @@ export class LiveResearchPipelineService implements LiveResearchPipeline {
   constructor(
     private store: LocalJsonStore,
     private reviewer: ResearchReviewer,
+    private summariser = createExecutiveSummariser(),
   ) {}
 
   async run(asOf: Date = new Date()): Promise<LiveResearchPipelineResult> {
@@ -77,7 +78,7 @@ export class LiveResearchPipelineService implements LiveResearchPipeline {
         document.sourceName,
         contentClassifier,
       );
-      const executiveSummary = executiveSummariser.summarise(document, classification);
+      const executiveSummary = await this.summariser.summarise(document, classification);
       const timestamp = nowIso();
 
       const finding: ResearchFinding = {

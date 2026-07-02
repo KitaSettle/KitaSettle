@@ -19,7 +19,7 @@ export interface SummarizeInput {
 
 export interface SummarizeOutput {
   summary: string;
-  mock: true;
+  mock: boolean;
 }
 
 export interface ClassifyInput {
@@ -32,7 +32,7 @@ export interface ClassifyOutput {
   category: ContentCategory | string;
   subcategory: string;
   tags: string[];
-  mock: true;
+  mock: boolean;
 }
 
 export interface ExtractRisksInput {
@@ -43,7 +43,7 @@ export interface ExtractRisksInput {
 
 export interface ExtractRisksOutput {
   risks: BriefRisk[];
-  mock: true;
+  mock: boolean;
 }
 
 export interface ExtractOpportunitiesInput {
@@ -54,7 +54,7 @@ export interface ExtractOpportunitiesInput {
 
 export interface ExtractOpportunitiesOutput {
   opportunities: BriefOpportunity[];
-  mock: true;
+  mock: boolean;
 }
 
 export interface CompareDocumentsInput {
@@ -66,7 +66,7 @@ export interface CompareDocumentsOutput {
   summary: string;
   differences: string[];
   alignmentScore: number;
-  mock: true;
+  mock: boolean;
 }
 
 export interface AIExecutiveBriefInput {
@@ -89,7 +89,7 @@ export interface AIExecutiveBriefOutput {
   confidence: number;
   topicsUsed: string[];
   generatedAt: ISO8601;
-  mock: true;
+  mock: boolean;
 }
 
 export interface ExecutiveBriefHistoryEntry {

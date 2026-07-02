@@ -1,5 +1,5 @@
 import type { BrainProviders, ProviderRegistry } from "./types";
-import { mockAIProvider } from "@/lib/ai/MockAIProvider";
+import { getAIProvider } from "@/lib/ai/get-ai-provider";
 import {
   mockCrawlerProvider,
   mockEmbeddingProvider,
@@ -9,7 +9,7 @@ import {
 
 export function createDefaultProviders(): BrainProviders {
   return {
-    ai: mockAIProvider,
+    ai: getAIProvider(),
     search: mockSearchProvider,
     crawler: mockCrawlerProvider,
     embedding: mockEmbeddingProvider,

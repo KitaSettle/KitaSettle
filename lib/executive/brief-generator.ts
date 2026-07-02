@@ -4,12 +4,12 @@ import type {
   ExecutiveBriefOutput,
 } from "@/lib/types/executive";
 import { mapAIBriefToExecutiveBriefOutput } from "@/lib/ai/generate-brief-action";
-import { mockAIProvider } from "@/lib/ai/MockAIProvider";
+import { getAIProvider } from "@/lib/ai/get-ai-provider";
 import { createId } from "@/lib/utils";
 
 export class MockExecutiveBriefGenerator implements ExecutiveBriefGenerator {
   async generate(input: ExecutiveBriefInput): Promise<ExecutiveBriefOutput> {
-    const aiBrief = await mockAIProvider.generateExecutiveBrief({
+    const aiBrief = await getAIProvider().generateExecutiveBrief({
       knowledge: input.knowledge,
       memory: input.memory,
       research: input.research,

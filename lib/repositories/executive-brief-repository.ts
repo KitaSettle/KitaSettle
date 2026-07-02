@@ -154,15 +154,19 @@ export class SupabaseExecutiveBriefRepository implements ExecutiveBriefRepositor
       summary: brief.executiveSummary,
       confidence_score: brief.confidence,
       recommended_focus: brief.recommendedActions[0] ?? "Review priorities",
-      priorities: brief.topPriorities.map((title, index) => ({
-        id: `p-${index + 1}`,
-        title,
+      priorities: brief.topPriorities.map((priority, index) => ({
+        id: priority.id ?? `p-${index + 1}`,
+        title: priority.title,
+        description: priority.description,
       })),
       decisions: [],
-      risks: brief.risks.map((title, index) => ({ id: `r-${index + 1}`, title })),
-      opportunities: brief.opportunities.map((title, index) => ({
-        id: `o-${index + 1}`,
-        title,
+      risks: brief.risks.map((risk, index) => ({
+        id: risk.id ?? `r-${index + 1}`,
+        title: risk.title,
+      })),
+      opportunities: brief.opportunities.map((opportunity, index) => ({
+        id: opportunity.id ?? `o-${index + 1}`,
+        title: opportunity.title,
       })),
       ai_prepared: [],
       workload_estimate: brief.estimatedReadingSaved,
