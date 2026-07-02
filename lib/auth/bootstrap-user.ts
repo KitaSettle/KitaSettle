@@ -1,8 +1,17 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AIExecutiveBriefOutput } from "@/lib/ai/types";
+import { isSchemaMissingError } from "@/lib/database/schema-health";
 import { createRepositories } from "@/lib/repositories";
 import { createClient } from "@/lib/supabase/server";
 import { createId, nowIso } from "@/lib/utils";
+
+export interface BootstrapResult {
+  method: "rpc" | "client_fallback" | "skipped";
+  ok: boolean;
+  error?: string;
+  errorCode?: string;
+  failedStep?: string;
+}
 
 function resolveDisplayName(email: string, name?: string | null): string {
   const trimmed = name?.trim();
@@ -19,6 +28,26 @@ function isMissingBootstrapRpc(error: { message?: string; code?: string }): bool
     message.includes("could not find the function") ||
     message.includes("schema cache")
   );
+}
+
+function formatBootstrapError(error: unknown): { message: string; code?: string } {
+  if (isSchemaMissingError(error)) {
+    return {
+      message:
+        "Database schema is missing on Supabase. Apply migrations once via POST /api/setup/apply-schema.",
+      code: "PGRST205",
+    };
+  }
+
+  if (error && typeof error === "object") {
+    const record = error as { message?: string; code?: string };
+    return {
+      message: record.message ?? "Bootstrap failed.",
+      code: record.code,
+    };
+  }
+
+  return { message: error instanceof Error ? error.message : "Bootstrap failed." };
 }
 
 function createStarterBrief(): AIExecutiveBriefOutput {
@@ -51,7 +80,7 @@ async function bootstrapWithClientFallback(
   userId: string,
   email: string,
   name: string,
-): Promise<void> {
+): Promise<BootstrapResult> {
   const repos = createRepositories(client);
   const displayName = resolveDisplayName(email, name);
 
@@ -64,21 +93,54 @@ async function bootstrapWithClientFallback(
     { onConflict: "id" },
   );
 
-  if (userError) throw userError;
-
-  await repos.executiveDna.ensureProfile(userId);
-
-  const existingBrief = await repos.executiveBriefs.getLatestBrief(userId);
-  if (!existingBrief) {
-    await repos.executiveBriefs.saveBrief(userId, createStarterBrief());
+  if (userError) {
+    const formatted = formatBootstrapError(userError);
+    return {
+      method: "client_fallback",
+      ok: false,
+      error: formatted.message,
+      errorCode: formatted.code,
+      failedStep: "public.users upsert",
+    };
   }
+
+  try {
+    await repos.executiveDna.ensureProfile(userId);
+  } catch (error) {
+    const formatted = formatBootstrapError(error);
+    return {
+      method: "client_fallback",
+      ok: false,
+      error: formatted.message,
+      errorCode: formatted.code,
+      failedStep: "executive_dna_profiles insert",
+    };
+  }
+
+  try {
+    const existingBrief = await repos.executiveBriefs.getLatestBrief(userId);
+    if (!existingBrief) {
+      await repos.executiveBriefs.saveBrief(userId, createStarterBrief());
+    }
+  } catch (error) {
+    const formatted = formatBootstrapError(error);
+    return {
+      method: "client_fallback",
+      ok: false,
+      error: formatted.message,
+      errorCode: formatted.code,
+      failedStep: "executive_briefs insert",
+    };
+  }
+
+  return { method: "client_fallback", ok: true };
 }
 
 export async function ensureUserBootstrapped(
   userId: string,
   email?: string | null,
   name?: string | null,
-): Promise<void> {
+): Promise<BootstrapResult> {
   const safeEmail = email?.trim() ?? "";
   const safeName = resolveDisplayName(safeEmail, name);
   const client = await createClient();
@@ -89,11 +151,31 @@ export async function ensureUserBootstrapped(
     p_name: safeName,
   });
 
-  if (!rpcError) return;
-
-  if (!isMissingBootstrapRpc(rpcError)) {
-    throw rpcError;
+  if (!rpcError) {
+    return { method: "rpc", ok: true };
   }
 
-  await bootstrapWithClientFallback(client, userId, safeEmail, safeName);
+  if (isSchemaMissingError(rpcError)) {
+    const formatted = formatBootstrapError(rpcError);
+    return {
+      method: "rpc",
+      ok: false,
+      error: formatted.message,
+      errorCode: formatted.code,
+      failedStep: "bootstrap_user_account rpc",
+    };
+  }
+
+  if (!isMissingBootstrapRpc(rpcError)) {
+    const formatted = formatBootstrapError(rpcError);
+    return {
+      method: "rpc",
+      ok: false,
+      error: formatted.message,
+      errorCode: formatted.code,
+      failedStep: "bootstrap_user_account rpc",
+    };
+  }
+
+  return bootstrapWithClientFallback(client, userId, safeEmail, safeName);
 }

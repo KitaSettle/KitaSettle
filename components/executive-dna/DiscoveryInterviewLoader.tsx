@@ -12,6 +12,13 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { KitaWorking } from "@/components/ui/KitaWorking";
 
+async function ensureSchemaApplied(): Promise<void> {
+  const probe = await fetch("/api/setup/apply-schema");
+  const payload = (await probe.json().catch(() => null)) as { ready?: boolean } | null;
+  if (payload?.ready) return;
+  await fetch("/api/setup/apply-schema", { method: "POST" });
+}
+
 function DiscoveryInterviewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -28,7 +35,13 @@ function DiscoveryInterviewContent() {
 
     async function load() {
       try {
-        const response = await fetch("/api/executive-dna/interview");
+        await ensureSchemaApplied();
+
+        let response = await fetch("/api/executive-dna/interview");
+        if (response.status === 503) {
+          await fetch("/api/setup/apply-schema", { method: "POST" });
+          response = await fetch("/api/executive-dna/interview");
+        }
         if (!response.ok) {
           throw new Error(getDiscoveryLoadErrorMessage());
         }

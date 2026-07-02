@@ -7,6 +7,7 @@ import { signOut } from "@/lib/auth";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { KitaWorking } from "@/components/ui/KitaWorking";
+import { OnboardingDebugPanel } from "@/components/settings/OnboardingDebugPanel";
 import { useTheme, type ThemePreference } from "@/components/theme/ThemeProvider";
 
 const themeOptions: { value: ThemePreference; label: string; description: string }[] = [
@@ -76,6 +77,8 @@ export function SettingsContent() {
           </Button>
         </div>
       </Card>
+
+      <OnboardingDebugPanel />
 
       <Card padding="relaxed">
         <div className="flex flex-wrap items-start justify-between gap-4">

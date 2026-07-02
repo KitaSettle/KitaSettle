@@ -2,11 +2,23 @@ import { NextResponse } from "next/server";
 import { isErrorResponse, jsonError, requireAuthUserId } from "@/lib/api/auth";
 import { ensureUserBootstrapped } from "@/lib/auth/bootstrap-user";
 import { createClient } from "@/lib/supabase/server";
+import { getSchemaHealthReport } from "@/lib/database/schema-health";
 import { getServerRepositories } from "@/lib/repositories/server";
 
 export async function GET() {
   const userId = await requireAuthUserId();
   if (isErrorResponse(userId)) return userId;
+
+  const schema = await getSchemaHealthReport();
+  if (!schema.ready) {
+    return NextResponse.json(
+      {
+        error: "Database schema is not ready. POST /api/setup/apply-schema once while signed in.",
+        schema,
+      },
+      { status: 503 },
+    );
+  }
 
   try {
     const supabase = await createClient();
@@ -26,7 +38,13 @@ export async function GET() {
           ? user.user_metadata.full_name
           : null;
 
-    await ensureUserBootstrapped(userId, user.email, metadataName);
+    const bootstrap = await ensureUserBootstrapped(userId, user.email, metadataName);
+    if (!bootstrap.ok) {
+      return NextResponse.json(
+        { error: bootstrap.error ?? "Failed to prepare your account.", bootstrap, schema },
+        { status: 503 },
+      );
+    }
 
     const repos = await getServerRepositories();
     const profile = await repos.users.getProfile(userId);
@@ -38,6 +56,7 @@ export async function GET() {
     return NextResponse.json({
       name: metadataName?.trim() || user.email?.split("@")[0] || "Executive",
       email: user.email ?? "",
+      bootstrap,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load profile";

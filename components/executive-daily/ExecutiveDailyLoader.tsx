@@ -8,6 +8,13 @@ import { Button } from "@/components/ui/Button";
 import { ExecutiveDailyContent } from "./ExecutiveDailyContent";
 import { ExecutiveDailySkeleton } from "./ExecutiveDailySkeleton";
 
+async function ensureSchemaApplied(): Promise<void> {
+  const probe = await fetch("/api/setup/apply-schema");
+  const payload = (await probe.json().catch(() => null)) as { ready?: boolean } | null;
+  if (payload?.ready) return;
+  await fetch("/api/setup/apply-schema", { method: "POST" });
+}
+
 export function ExecutiveDailyLoader() {
   const router = useRouter();
   const [name, setName] = useState("Executive");
@@ -19,18 +26,27 @@ export function ExecutiveDailyLoader() {
 
     async function load() {
       try {
-        const [userResponse, statusResponse] = await Promise.all([
-          fetch("/api/users/me"),
-          fetch("/api/executive-dna/status"),
-        ]);
+        await ensureSchemaApplied();
 
-        if (userResponse.status === 401) {
-          router.replace("/login?next=/dashboard/executive");
+        let userResponse = await fetch("/api/users/me");
+        let statusResponse = await fetch("/api/executive-dna/status");
+
+        if (userResponse.status === 401 || statusResponse.status === 401) {
+          router.replace("/login?next=/dashboard/discovery");
           return;
         }
 
+        if (userResponse.status === 503 || statusResponse.status === 503) {
+          await fetch("/api/setup/apply-schema", { method: "POST" });
+          userResponse = await fetch("/api/users/me");
+          statusResponse = await fetch("/api/executive-dna/status");
+        }
+
         if (!userResponse.ok) {
-          throw new Error(getExecutiveLoadErrorMessage("user profile"));
+          if (!cancelled) {
+            setError(getExecutiveLoadErrorMessage(undefined));
+          }
+          return;
         }
 
         const user = (await userResponse.json()) as { name: string };
@@ -53,10 +69,10 @@ export function ExecutiveDailyLoader() {
         }
 
         if (!briefResponse.ok) {
-          const errorBody = (await briefResponse.json().catch(() => null)) as {
-            error?: string;
-          } | null;
-          throw new Error(getExecutiveLoadErrorMessage(errorBody?.error));
+          if (!cancelled) {
+            setError(getExecutiveLoadErrorMessage(undefined));
+          }
+          return;
         }
 
         const briefData = (await briefResponse.json()) as DailyExecutiveBriefPayload;
@@ -85,10 +101,10 @@ export function ExecutiveDailyLoader() {
   if (error) {
     return (
       <div className="mx-auto flex min-h-[50vh] max-w-lg flex-col items-center justify-center px-6 text-center">
-        <h2 className="text-xl font-semibold text-foreground">Unable to load today&apos;s brief</h2>
+        <h2 className="text-xl font-semibold text-foreground">Setting up your account</h2>
         <p className="mt-3 text-sm leading-relaxed text-muted">{error}</p>
-        <Button className="mt-6" onClick={() => window.location.reload()}>
-          Try again
+        <Button className="mt-6" onClick={() => router.replace("/dashboard/discovery")}>
+          Continue to discovery
         </Button>
       </div>
     );

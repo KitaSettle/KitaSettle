@@ -11,6 +11,7 @@ import {
   signInWithEmail,
   signInWithOAuth,
 } from "@/lib/auth";
+import { DEFAULT_POST_LOGIN_PATH } from "@/lib/auth/post-login";
 import { Button } from "@/components/ui/Button";
 import { KitaWorking } from "@/components/ui/KitaWorking";
 
@@ -52,7 +53,7 @@ function LoginForm() {
   useEffect(() => {
     void isAuthenticated().then((authenticated: boolean) => {
       if (authenticated) {
-        router.replace("/dashboard/executive");
+        router.replace(DEFAULT_POST_LOGIN_PATH);
         return;
       }
       setReady(true);
@@ -72,7 +73,7 @@ function LoginForm() {
       return;
     }
 
-    router.push(searchParams.get("next") ?? "/dashboard/executive");
+    router.push(searchParams.get("next") ?? DEFAULT_POST_LOGIN_PATH);
   }
 
   async function handleOAuth(provider: "google" | "github") {

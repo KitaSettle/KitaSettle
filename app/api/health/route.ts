@@ -8,6 +8,7 @@ import {
   isOpenAIConfigured,
   isSupabaseConfigured,
 } from "@/lib/config/env";
+import { getSchemaHealthReport } from "@/lib/database/schema-health";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -46,15 +47,18 @@ export async function GET(request: Request) {
     });
   }
 
-  const [supabase, openaiConfigured, googleConfigured] = await Promise.all([
+  const [supabase, openaiConfigured, googleConfigured, schema] = await Promise.all([
     probeSupabase(),
     Promise.resolve(isOpenAIConfigured()),
     Promise.resolve(isGoogleOAuthConfigured()),
+    getSchemaHealthReport(),
   ]);
 
   const envIssues = getProductionEnvIssues();
   const checks = {
     supabase,
+    schemaReady: schema.ready,
+    missingTables: schema.missingTables.length > 0 ? schema.missingTables : undefined,
     openai: openaiConfigured ? "configured" : "mock",
     google: googleConfigured ? "configured" : "offline",
     aiProvider: getAIProviderMode(),
@@ -64,6 +68,7 @@ export async function GET(request: Request) {
 
   const degraded =
     supabase !== "ok" ||
+    !schema.ready ||
     envIssues.length > 0 ||
     (!openaiConfigured && env.isProduction);
 
