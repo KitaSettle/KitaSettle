@@ -36,7 +36,9 @@ export async function handleAuthCallback(request: Request): Promise<NextResponse
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error || !data.user) {
-    return NextResponse.redirect(`${origin}/login?error=auth`);
+    const isRecovery = type === "recovery" || next === RESET_PASSWORD_PATH;
+    const errorParam = isRecovery ? "recovery" : "auth";
+    return NextResponse.redirect(`${origin}/login?error=${errorParam}`);
   }
 
   const redirectPath = resolveRedirectPath(next, type);

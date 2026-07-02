@@ -55,7 +55,56 @@ export function getLoginErrorMessage(
     return "No account found with that email. Create an account to get started.";
   }
 
-  return "We couldn't sign you in. Please check your details and try again.";
+  if (message.includes("invalid email")) {
+    return "Please enter a valid email address.";
+  }
+
+  if (message.includes("rate") || message.includes("too many")) {
+    return "Too many sign-in attempts. Please wait a few minutes and try again.";
+  }
+
+  return "We couldn't sign you in. Please check your email and password, then try again.";
+}
+
+export function getSignUpErrorMessage(error: AuthLikeError): string {
+  const message = normalizeMessage(error);
+
+  if (message.includes("already registered") || message.includes("already been registered")) {
+    return "An account with this email already exists. Sign in or reset your password.";
+  }
+
+  if (message.includes("password") || message.includes("weak") || message.includes("at least")) {
+    return "Your password must be at least 6 characters.";
+  }
+
+  if (message.includes("invalid email")) {
+    return "Please enter a valid email address.";
+  }
+
+  if (message.includes("rate") || message.includes("too many")) {
+    return "Too many attempts. Please wait a few minutes and try again.";
+  }
+
+  return "We couldn't create your account. Please try again.";
+}
+
+export function getOAuthErrorMessage(error: AuthLikeError, provider: "google" | "github"): string {
+  const message = normalizeMessage(error);
+  const label = provider === "google" ? "Google" : "GitHub";
+
+  if (message.includes("popup") || message.includes("closed")) {
+    return `${label} sign-in was cancelled. Please try again when you're ready.`;
+  }
+
+  if (message.includes("network") || message.includes("fetch")) {
+    return `We couldn't reach ${label}. Check your connection and try again.`;
+  }
+
+  if (message.includes("oauth") || message.includes("provider")) {
+    return `${label} sign-in isn't available right now. Try email sign-in or contact support.`;
+  }
+
+  return `${label} sign-in was interrupted. Please try again.`;
 }
 
 export function getPasswordResetErrorMessage(error: AuthLikeError): string {
@@ -83,5 +132,13 @@ export function getForgotPasswordErrorMessage(error: AuthLikeError): string {
     return "Too many reset requests. Please wait a few minutes and try again.";
   }
 
+  if (message.includes("invalid email")) {
+    return "Please enter a valid email address.";
+  }
+
   return "We couldn't send a reset email. Please check the address and try again.";
+}
+
+export function getSignOutErrorMessage(): string {
+  return "We couldn't sign you out. Please try again.";
 }

@@ -15,6 +15,9 @@ export {
 export {
   getForgotPasswordErrorMessage,
   getLoginErrorMessage,
+  getOAuthErrorMessage,
   getPasswordResetErrorMessage,
+  getSignOutErrorMessage,
+  getSignUpErrorMessage,
 } from "./auth/errors";
 export type { AccountHint } from "./auth/errors";

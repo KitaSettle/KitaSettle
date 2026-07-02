@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { isAuthenticated, signUpWithEmail } from "@/lib/auth";
+import { getSignUpErrorMessage, isAuthenticated, signUpWithEmail } from "@/lib/auth";
 import { Button } from "@/components/ui/Button";
 import { KitaWorking } from "@/components/ui/KitaWorking";
 
@@ -14,6 +14,7 @@ export default function SignUpPage() {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [confirmationSent, setConfirmationSent] = useState(false);
 
   useEffect(() => {
     void isAuthenticated().then((authenticated) => {
@@ -30,16 +31,15 @@ export default function SignUpPage() {
     setBusy(true);
     setError(null);
 
-    const { error: signUpError } = await signUpWithEmail(email, password);
+    const { data, error: signUpError } = await signUpWithEmail(email, password);
     if (signUpError) {
-      const message = signUpError.message.toLowerCase();
-      if (message.includes("already registered") || message.includes("already been registered")) {
-        setError("An account with this email already exists. Sign in or reset your password.");
-      } else if (message.includes("password")) {
-        setError("Your password must be at least 6 characters.");
-      } else {
-        setError("We couldn't create your account. Please try again.");
-      }
+      setError(getSignUpErrorMessage(signUpError));
+      setBusy(false);
+      return;
+    }
+
+    if (!data.session) {
+      setConfirmationSent(true);
       setBusy(false);
       return;
     }
@@ -51,6 +51,49 @@ export default function SignUpPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <KitaWorking context="auth" compact />
+      </div>
+    );
+  }
+
+  if (confirmationSent) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-6 py-14">
+        <div className="mx-auto w-full max-w-md kita-enter">
+          <div className="mb-12">
+            <p className="text-lg font-semibold tracking-tight text-foreground">KitaSettle</p>
+            <p className="mt-1 text-xs text-muted">Your executive companion</p>
+          </div>
+
+          <h1 className="font-display text-3xl tracking-tight text-foreground sm:text-4xl">
+            Check your email
+          </h1>
+          <p className="mt-4 text-base leading-relaxed text-muted">
+            We sent a confirmation link to <span className="text-foreground">{email}</span>.
+            Open it to activate your account, then sign in.
+          </p>
+
+          <div className="mt-10 space-y-4">
+            <Link href="/login">
+              <Button fullWidth className="h-12 text-base">
+                Go to sign in
+              </Button>
+            </Link>
+            <p className="text-center text-sm text-muted">
+              Didn&apos;t receive it? Check spam, or{" "}
+              <button
+                type="button"
+                className="text-accent underline-offset-4 hover:underline"
+                onClick={() => {
+                  setConfirmationSent(false);
+                  setError(null);
+                }}
+              >
+                try again
+              </button>
+              .
+            </p>
+          </div>
+        </div>
       </div>
     );
   }

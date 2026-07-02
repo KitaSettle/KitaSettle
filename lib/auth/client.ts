@@ -11,6 +11,8 @@ export function getAuthCallbackUrl(next = "/dashboard/executive"): string {
   return `${origin}/auth/callback?${params.toString()}`;
 }
 
+type AuthLikeError = { message: string } | null;
+
 export async function getSession() {
   if (!isSupabaseConfigured()) {
     return mockAuth.getSession();
@@ -27,8 +29,8 @@ export async function isAuthenticated(): Promise<boolean> {
   }
 
   const supabase = createClient();
-  const { data } = await supabase.auth.getSession();
-  return Boolean(data.session);
+  const { data, error } = await supabase.auth.getUser();
+  return !error && Boolean(data.user);
 }
 
 export async function signInWithEmail(email: string, password: string) {
@@ -51,6 +53,7 @@ export async function signUpWithEmail(email: string, password: string, name?: st
     password,
     options: {
       data: { name: name ?? email.split("@")[0] },
+      emailRedirectTo: getAuthCallbackUrl("/dashboard/executive"),
     },
   });
 }
@@ -108,13 +111,15 @@ export async function fetchAccountHint(email: string): Promise<AccountHint | nul
   }
 }
 
-export async function signOut() {
+export async function signOut(): Promise<{ error: AuthLikeError }> {
   if (!isSupabaseConfigured()) {
-    return mockAuth.signOut();
+    mockAuth.signOut();
+    return { error: null };
   }
 
   const supabase = createClient();
-  await supabase.auth.signOut();
+  const { error } = await supabase.auth.signOut();
+  return { error };
 }
 
 export function onAuthStateChange(callback: (authenticated: boolean) => void) {

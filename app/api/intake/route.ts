@@ -49,14 +49,14 @@ export async function POST(request: Request) {
         return NextResponse.json(result, { status: 201 });
       }
 
-      return jsonError("Provide a file, URL, or text to delegate to Kita.");
+      return jsonError("Share a file, link, or some text for Kita to work with.");
     }
 
     let body: unknown;
     try {
       body = await request.json();
     } catch {
-      return jsonError("Invalid JSON body");
+      return jsonError("Something went wrong sending that to Kita. Please try again.");
     }
 
     const parsed = parseJsonBody(intakeJsonSchema, body);
@@ -82,7 +82,11 @@ export async function POST(request: Request) {
     );
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to delegate content to Kita";
+    const raw = error instanceof Error ? error.message : undefined;
+    const message =
+      raw && !raw.toLowerCase().includes("stack")
+        ? raw
+        : "Kita couldn't process that just now. Please try again.";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

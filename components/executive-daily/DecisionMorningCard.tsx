@@ -24,13 +24,32 @@ function DecisionActionItem({
   compact?: boolean;
   onAction?: () => void;
 }) {
+  const [busy, setBusy] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
+
   async function sendAction(action: DecisionLearningEventType) {
-    await fetch(`/api/decisions/${item.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, reason: `User marked decision as ${action}.` }),
-    });
-    onAction?.();
+    setBusy(true);
+    setFeedback(null);
+
+    try {
+      const response = await fetch(`/api/decisions/${item.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, reason: `User marked decision as ${action}.` }),
+      });
+
+      if (!response.ok) {
+        setFeedback("We couldn't save that. Please try again.");
+        return;
+      }
+
+      setFeedback("Saved.");
+      onAction?.();
+    } catch {
+      setFeedback("We couldn't save that. Please try again.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   const transparency = buildDecisionTransparency(item);
@@ -49,17 +68,23 @@ function DecisionActionItem({
 
       <WhyPanel transparency={transparency} className="mt-2" />
 
+      {feedback && (
+        <p className="mt-3 text-xs text-muted" role="status">
+          {feedback}
+        </p>
+      )}
+
       <div className="mt-4 flex flex-wrap gap-2">
-        <Button variant="ghost" onClick={() => void sendAction("accepted")}>
+        <Button variant="ghost" disabled={busy} onClick={() => void sendAction("accepted")}>
           Accept
         </Button>
-        <Button variant="ghost" onClick={() => void sendAction("completed")}>
+        <Button variant="ghost" disabled={busy} onClick={() => void sendAction("completed")}>
           Done
         </Button>
-        <Button variant="ghost" onClick={() => void sendAction("delayed")}>
+        <Button variant="ghost" disabled={busy} onClick={() => void sendAction("delayed")}>
           Delay
         </Button>
-        <Button variant="ghost" onClick={() => void sendAction("dismissed")}>
+        <Button variant="ghost" disabled={busy} onClick={() => void sendAction("dismissed")}>
           Dismiss
         </Button>
       </div>
@@ -89,7 +114,7 @@ export function DecisionMorningCard({ queue, onAction }: DecisionMorningCardProp
       ) : (
         <SectionCard
           title="Today's Top Decision"
-          subtitle="The platform will surface your highest-value move once inputs are available"
+          subtitle="Kita will surface your best next move once you've shared enough context"
         >
           <EmptyState>{KITA_EMPTY.decisions}</EmptyState>
         </SectionCard>

@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   fetchAccountHint,
   getLoginErrorMessage,
+  getOAuthErrorMessage,
   isAuthenticated,
   signInWithEmail,
   signInWithOAuth,
@@ -71,13 +72,13 @@ function LoginForm() {
       return;
     }
 
-    router.push("/dashboard/executive");
+    router.push(searchParams.get("next") ?? "/dashboard/executive");
   }
 
   async function handleOAuth(provider: "google" | "github") {
     setError(null);
     const { error: oauthError } = await signInWithOAuth(provider);
-    if (oauthError) setError("Sign-in was interrupted. Please try again.");
+    if (oauthError) setError(getOAuthErrorMessage(oauthError, provider));
   }
 
   if (!ready) {

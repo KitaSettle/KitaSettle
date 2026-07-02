@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import type { DailyExecutiveBriefPayload } from "@/lib/types/daily-executive-brief";
 import type { DecisionTimelinePayload } from "@/lib/types/decision-engine";
 import { Button } from "@/components/ui/Button";
@@ -29,7 +30,9 @@ interface ExecutiveDailyContentProps {
 }
 
 export function ExecutiveDailyContent({ name, data }: ExecutiveDailyContentProps) {
-  const [showAll, setShowAll] = useState(false);
+  const searchParams = useSearchParams();
+  const [notice, setNotice] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(true);
   const [timeline, setTimeline] = useState<DecisionTimelinePayload | null>(null);
   const {
     brief,
@@ -51,6 +54,20 @@ export function ExecutiveDailyContent({ name, data }: ExecutiveDailyContentProps
     await refreshTimeline();
   }, [refreshTimeline]);
 
+  useEffect(() => {
+    if (searchParams.get("connected") === "google") {
+      setNotice("Google connected. Your brief will include calendar and email context.");
+    } else if (searchParams.get("connectError")) {
+      setNotice("We couldn't connect Google. Please try again from Executive Connect.");
+    } else if (searchParams.get("notice") === "admin-only") {
+      setNotice("Mission Control is limited to KitaSettle administrators.");
+    }
+
+    if (searchParams.get("connected") || searchParams.get("connectError") || searchParams.get("notice")) {
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, [searchParams]);
+
   const openAll = useCallback(async () => {
     setShowAll(true);
     if (!timeline) await refreshTimeline();
@@ -59,6 +76,12 @@ export function ExecutiveDailyContent({ name, data }: ExecutiveDailyContentProps
   return (
     <div className="mx-auto max-w-6xl">
       <DashboardHeader name={name} />
+
+      {notice && (
+        <p className="mb-6 rounded-2xl bg-accent/10 px-4 py-3 text-sm text-foreground" role="status">
+          {notice}
+        </p>
+      )}
 
       <div className="space-y-8">
         <GiveToKita />

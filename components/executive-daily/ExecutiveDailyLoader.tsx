@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { DailyExecutiveBriefPayload } from "@/lib/types/daily-executive-brief";
+import { getExecutiveLoadErrorMessage } from "@/lib/copy/user-errors";
+import { Button } from "@/components/ui/Button";
 import { ExecutiveDailyContent } from "./ExecutiveDailyContent";
 import { ExecutiveDailySkeleton } from "./ExecutiveDailySkeleton";
 
@@ -22,8 +24,13 @@ export function ExecutiveDailyLoader() {
           fetch("/api/executive-dna/status"),
         ]);
 
+        if (userResponse.status === 401) {
+          router.replace("/login?next=/dashboard/executive");
+          return;
+        }
+
         if (!userResponse.ok) {
-          throw new Error("Failed to load user profile");
+          throw new Error(getExecutiveLoadErrorMessage("user profile"));
         }
 
         const user = (await userResponse.json()) as { name: string };
@@ -37,11 +44,16 @@ export function ExecutiveDailyLoader() {
         }
 
         const briefResponse = await fetch("/api/dashboard/executive");
+        if (briefResponse.status === 401) {
+          router.replace("/login?next=/dashboard/executive");
+          return;
+        }
+
         if (!briefResponse.ok) {
           const errorBody = (await briefResponse.json().catch(() => null)) as {
             error?: string;
           } | null;
-          throw new Error(errorBody?.error ?? "Failed to load daily executive brief");
+          throw new Error(getExecutiveLoadErrorMessage(errorBody?.error));
         }
 
         const briefData = (await briefResponse.json()) as DailyExecutiveBriefPayload;
@@ -52,7 +64,11 @@ export function ExecutiveDailyLoader() {
         }
       } catch (loadError) {
         if (!cancelled) {
-          setError(loadError instanceof Error ? loadError.message : "Failed to load");
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : getExecutiveLoadErrorMessage(undefined),
+          );
         }
       }
     }
@@ -64,12 +80,24 @@ export function ExecutiveDailyLoader() {
   }, [router]);
 
   if (error) {
-    throw new Error(error);
+    return (
+      <div className="mx-auto flex min-h-[50vh] max-w-lg flex-col items-center justify-center px-6 text-center">
+        <h2 className="text-xl font-semibold text-foreground">Unable to load today&apos;s brief</h2>
+        <p className="mt-3 text-sm leading-relaxed text-muted">{error}</p>
+        <Button className="mt-6" onClick={() => window.location.reload()}>
+          Try again
+        </Button>
+      </div>
+    );
   }
 
   if (!data) {
     return <ExecutiveDailySkeleton />;
   }
 
-  return <ExecutiveDailyContent name={name} data={data} />;
+  return (
+    <Suspense fallback={<ExecutiveDailySkeleton />}>
+      <ExecutiveDailyContent name={name} data={data} />
+    </Suspense>
+  );
 }

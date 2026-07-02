@@ -407,6 +407,9 @@ export function ExecutiveBrainContent({ data }: ExecutiveBrainContentProps) {
                   No memory items match your search.
                 </li>
               )}
+              {filteredMemory.length === 0 && !hasSearch && (
+                <EmptyState>{KITA_EMPTY.brainMemory}</EmptyState>
+              )}
             </ul>
           </SectionCard>
         )}

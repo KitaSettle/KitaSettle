@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export default async function MissionControlPage() {
   const admin = await requireAdminUserId();
   if (isErrorResponse(admin)) {
-    redirect("/dashboard/executive");
+    redirect("/dashboard/executive?notice=admin-only");
   }
 
   return (

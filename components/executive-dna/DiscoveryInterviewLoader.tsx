@@ -1,19 +1,26 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { FormEvent, Suspense, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { DiscoveryInterviewResponse } from "@/lib/types/executive-dna";
+import {
+  getDiscoveryLoadErrorMessage,
+  getDiscoverySubmitErrorMessage,
+} from "@/lib/copy/user-errors";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { KitaWorking } from "@/components/ui/KitaWorking";
 
-export function DiscoveryInterviewLoader() {
+function DiscoveryInterviewContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const allowUpdate = searchParams.get("update") === "1";
   const [data, setData] = useState<DiscoveryInterviewResponse | null>(null);
   const [answer, setAnswer] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -23,18 +30,20 @@ export function DiscoveryInterviewLoader() {
       try {
         const response = await fetch("/api/executive-dna/interview");
         if (!response.ok) {
-          throw new Error("Failed to start discovery interview");
+          throw new Error(getDiscoveryLoadErrorMessage());
         }
         const payload = (await response.json()) as DiscoveryInterviewResponse;
         if (!cancelled) {
           setData(payload);
-          if (payload.isComplete) {
+          if (payload.isComplete && !allowUpdate) {
             router.replace("/dashboard/executive");
           }
         }
-      } catch (loadError) {
+      } catch (loadErr) {
         if (!cancelled) {
-          setError(loadError instanceof Error ? loadError.message : "Failed to load");
+          setLoadError(
+            loadErr instanceof Error ? loadErr.message : getDiscoveryLoadErrorMessage(),
+          );
         }
       }
     }
@@ -43,7 +52,7 @@ export function DiscoveryInterviewLoader() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [allowUpdate, router]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -64,25 +73,33 @@ export function DiscoveryInterviewLoader() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to send answer");
+        throw new Error(getDiscoverySubmitErrorMessage());
       }
 
       const payload = (await response.json()) as DiscoveryInterviewResponse;
       setData(payload);
       setAnswer("");
 
-      if (payload.isComplete) {
+      if (payload.isComplete && !allowUpdate) {
         router.replace("/dashboard/executive");
       }
-    } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Failed to send answer");
+    } catch {
+      setError(getDiscoverySubmitErrorMessage());
     } finally {
       setBusy(false);
     }
   }
 
-  if (error) {
-    throw new Error(error);
+  if (loadError) {
+    return (
+      <div className="mx-auto flex min-h-[50vh] max-w-lg flex-col items-center justify-center px-6 text-center">
+        <h2 className="text-xl font-semibold text-foreground">Unable to continue</h2>
+        <p className="mt-3 text-sm leading-relaxed text-muted">{loadError}</p>
+        <Button className="mt-6" onClick={() => window.location.reload()}>
+          Try again
+        </Button>
+      </div>
+    );
   }
 
   if (!data) {
@@ -94,7 +111,7 @@ export function DiscoveryInterviewLoader() {
       <div className="mb-10">
         <p className="text-sm font-medium uppercase tracking-[0.16em] text-accent">Getting to know you</p>
         <h1 className="font-display mt-3 text-3xl tracking-tight text-foreground sm:text-4xl">
-          Help Kita understand how you work
+          {allowUpdate ? "Update how Kita knows you" : "Help Kita understand how you work"}
         </h1>
         <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted">
           A short conversation — no forms, no checklists. Kita learns from how you answer and
@@ -104,6 +121,17 @@ export function DiscoveryInterviewLoader() {
           <Badge variant="default">Understanding you: {data.overallConfidence}%</Badge>
           <Badge variant="muted">Goal: deeply personal briefs</Badge>
         </div>
+        {allowUpdate && data.isComplete && (
+          <div className="mt-6 space-y-3">
+            <p className="text-sm text-muted">
+              Your profile is complete. Share more with Give to Kita anytime, or revisit this
+              conversation below.
+            </p>
+            <Button variant="secondary" onClick={() => router.push("/dashboard/executive")}>
+              Back to Today
+            </Button>
+          </div>
+        )}
       </div>
 
       <Card className="mb-8 max-h-[28rem] overflow-y-auto" padding="relaxed">
@@ -135,7 +163,7 @@ export function DiscoveryInterviewLoader() {
           />
           {error && (
             <p className="text-sm text-warning" role="alert">
-              Something went wrong. Please try again.
+              {error}
             </p>
           )}
           <Button type="submit" disabled={busy || !answer.trim()} className="h-11 px-6">
@@ -144,5 +172,13 @@ export function DiscoveryInterviewLoader() {
         </form>
       )}
     </div>
+  );
+}
+
+export function DiscoveryInterviewLoader() {
+  return (
+    <Suspense fallback={<KitaWorking context="discovery" />}>
+      <DiscoveryInterviewContent />
+    </Suspense>
   );
 }

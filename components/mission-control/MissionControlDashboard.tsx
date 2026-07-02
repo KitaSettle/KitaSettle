@@ -35,6 +35,7 @@ export function MissionControlDashboard() {
   const [data, setData] = useState<MissionControlPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteMessage, setInviteMessage] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const response = await fetch("/api/admin/mission-control");
@@ -53,13 +54,24 @@ export function MissionControlDashboard() {
 
   async function inviteBetaUser() {
     if (!inviteEmail.trim()) return;
-    await fetch("/api/admin/mission-control/beta", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "invite", email: inviteEmail.trim() }),
-    });
-    setInviteEmail("");
-    await load();
+    setInviteMessage(null);
+    try {
+      const response = await fetch("/api/admin/mission-control/beta", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "invite", email: inviteEmail.trim() }),
+      });
+      if (!response.ok) {
+        setInviteMessage("Invite could not be sent. Check the email and try again.");
+        return;
+      }
+      const email = inviteEmail.trim();
+      setInviteEmail("");
+      setInviteMessage(`Invite sent to ${email}.`);
+      await load();
+    } catch {
+      setInviteMessage("Invite could not be sent. Please try again.");
+    }
   }
 
   if (error) {
@@ -254,6 +266,11 @@ export function MissionControlDashboard() {
             Invite User
           </Button>
         </div>
+        {inviteMessage && (
+          <p className="mt-3 text-sm text-foreground" role="status">
+            {inviteMessage}
+          </p>
+        )}
         <p className="mt-3 text-xs text-muted">
           Pending invites: {betaManagement.pendingInvites} · Default daily AI budget: $
           {betaManagement.defaultDailyAiBudgetUsd}

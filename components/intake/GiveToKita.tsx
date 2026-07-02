@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import type { IntakeDelegationResult } from "@/lib/types/intake";
 import { KITA_LOADING_MESSAGES } from "@/lib/copy/kita-messages";
+import { getIntakeErrorMessage, getIntakeSuccessToast } from "@/lib/intake/user-errors";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { KitaWorking } from "@/components/ui/KitaWorking";
@@ -29,15 +30,15 @@ export function GiveToKita({ onDelegated }: GiveToKitaProps) {
       try {
         const response = await fetch("/api/intake", { method: "POST", body: formData });
         const payload = (await response.json()) as IntakeDelegationResult & { error?: string };
-        if (!response.ok) throw new Error(payload.error ?? "Delegation failed");
+        if (!response.ok) throw new Error(getIntakeErrorMessage(payload.error));
         setResult(payload);
-        setToast("Added to your Executive Brain");
+        setToast(getIntakeSuccessToast(payload.needsClarification));
         setOpen(false);
         setUrl("");
         setPaste("");
         onDelegated?.();
       } catch (error) {
-        setToast(error instanceof Error ? error.message : "Kita couldn't process that just now");
+        setToast(error instanceof Error ? error.message : getIntakeErrorMessage(undefined));
       } finally {
         setBusy(false);
         window.setTimeout(() => setToast(null), 5000);
@@ -48,8 +49,13 @@ export function GiveToKita({ onDelegated }: GiveToKitaProps) {
 
   const handleFiles = useCallback(
     async (files: FileList | File[]) => {
-      const file = files[0];
-      if (!file) return;
+      const list = Array.from(files);
+      if (list.length === 0) return;
+      if (list.length > 1) {
+        setToast("Kita will process the first file. Share others one at a time.");
+        window.setTimeout(() => setToast(null), 5000);
+      }
+      const file = list[0];
       const formData = new FormData();
       formData.append("file", file);
       await submitFormData(formData);

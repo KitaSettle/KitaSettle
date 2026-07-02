@@ -127,7 +127,7 @@ export class DiscoveryInterviewService {
     const nextField = nextMissingField(profile);
     const opening =
       session.messages.length === 0
-        ? "Welcome to your Executive DNA discovery. I will learn how you work so KitaSettle can personalize your intelligence layer."
+        ? "Welcome. I'll learn how you work so Kita can prepare briefs that feel personal to you."
         : null;
     const nextQuestion = nextField ? mockQuestionForField(nextField) : null;
 

@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/config/env";
 import { KitaWorking } from "@/components/ui/KitaWorking";
@@ -21,6 +22,38 @@ function resolveRedirectPath(next: string | null, type: string | null): string {
   return DEFAULT_NEXT;
 }
 
+function waitForSession(
+  supabase: ReturnType<typeof createClient>,
+  timeoutMs = 4000,
+): Promise<boolean> {
+  return new Promise((resolve) => {
+    let settled = false;
+
+    const finish = (value: boolean) => {
+      if (settled) return;
+      settled = true;
+      subscription.unsubscribe();
+      window.clearTimeout(timer);
+      resolve(value);
+    };
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) finish(true);
+    });
+
+    const timer = window.setTimeout(async () => {
+      const { data } = await supabase.auth.getSession();
+      finish(Boolean(data.session));
+    }, timeoutMs);
+
+    void supabase.auth.getSession().then(({ data }) => {
+      if (data.session) finish(true);
+    });
+  });
+}
+
 function AuthConfirmContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -35,6 +68,7 @@ function AuthConfirmContent() {
     const supabase = createClient();
     const next = searchParams.get("next");
     const type = searchParams.get("type");
+    const tokenHash = searchParams.get("token_hash");
     const redirectPath = resolveRedirectPath(next, type);
 
     async function completeAuth() {
@@ -43,15 +77,48 @@ function AuthConfirmContent() {
         : window.location.hash;
       const hashParams = new URLSearchParams(hash);
       const hashType = hashParams.get("type");
+      const hashError = hashParams.get("error_description") ?? hashParams.get("error");
       const finalPath =
         hashType === "recovery" || type === "recovery" || next === RESET_PASSWORD_PATH
           ? RESET_PASSWORD_PATH
           : redirectPath;
 
-      if (hash.includes("access_token") || hash.includes("error")) {
-        const { data, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError || !data.session) {
-          setError("This sign-in link is invalid or has expired.");
+      if (hashError) {
+        setError(
+          hashType === "recovery" || type === "recovery"
+            ? "Your password reset link has expired. Request a new one."
+            : "This sign-in link is invalid or has expired.",
+        );
+        return;
+      }
+
+      if (tokenHash && type) {
+        const { error: verifyError } = await supabase.auth.verifyOtp({
+          type: type as EmailOtpType,
+          token_hash: tokenHash,
+        });
+
+        if (verifyError) {
+          setError(
+            type === "recovery"
+              ? "Your password reset link has expired. Request a new one."
+              : "This confirmation link is invalid or has expired.",
+          );
+          return;
+        }
+
+        router.replace(finalPath);
+        return;
+      }
+
+      if (hash.includes("access_token") || hash.includes("refresh_token")) {
+        const hasSession = await waitForSession(supabase);
+        if (!hasSession) {
+          setError(
+            hashType === "recovery"
+              ? "Your password reset link has expired. Request a new one."
+              : "This sign-in link is invalid or has expired.",
+          );
           return;
         }
 

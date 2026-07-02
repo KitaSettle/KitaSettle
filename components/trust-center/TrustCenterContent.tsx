@@ -41,7 +41,7 @@ const DELETE_COPY: Record<
     confirm: "Delete my knowledge",
   },
   memory: {
-    title: "Delete Executive Memory",
+    title: "Delete saved memory",
     body: "This clears captured context, notes, and memory entries. Kita will forget past conversations and saved context.",
     confirm: "Delete my memory",
   },
@@ -91,26 +91,38 @@ export function TrustCenterContent() {
         body: JSON.stringify({ scope, confirm: true }),
       });
       const payload = (await response.json()) as { message?: string; error?: string };
-      if (!response.ok) throw new Error(payload.error ?? "Deletion failed");
+      if (!response.ok) throw new Error("We couldn't complete that deletion. Please try again.");
 
       setMessage(payload.message ?? "Done.");
       if (scope === "account") {
-        await signOut();
+        const { error: signOutError } = await signOut();
+        if (signOutError) {
+          setMessage("Your account was deleted, but sign-out failed. Please close this browser tab.");
+        }
         router.replace("/login");
         return;
       }
       await load();
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Deletion failed");
+    } catch {
+      setMessage("We couldn't complete that deletion. Please try again.");
     } finally {
       setBusyScope(null);
     }
   }
 
   async function handleDisconnect() {
-    await fetch("/api/integrations/google/disconnect", { method: "POST" });
-    await load();
-    setMessage("Google has been disconnected.");
+    setMessage(null);
+    try {
+      const response = await fetch("/api/integrations/google/disconnect", { method: "POST" });
+      if (!response.ok) {
+        setMessage("We couldn't disconnect Google. Please try again.");
+        return;
+      }
+      await load();
+      setMessage("Google has been disconnected.");
+    } catch {
+      setMessage("We couldn't disconnect Google. Please try again.");
+    }
   }
 
   if (loading) {
@@ -297,7 +309,7 @@ export function TrustCenterContent() {
           <Link href="/dashboard/my-brain">
             <Button variant="secondary">Open My Brain</Button>
           </Link>
-          <Link href="/dashboard/discovery">
+          <Link href="/dashboard/discovery?update=1">
             <Button variant="ghost">Update how Kita knows you</Button>
           </Link>
         </div>

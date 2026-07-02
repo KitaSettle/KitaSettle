@@ -1,8 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { isAuthenticated, signOut } from "@/lib/auth";
+import { getSignOutErrorMessage, isAuthenticated, onAuthStateChange, signOut } from "@/lib/auth";
 import { Button } from "@/components/ui/Button";
 import { KitaWorking } from "@/components/ui/KitaWorking";
 import { MobileNav } from "./MobileNav";
@@ -14,22 +14,40 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [ready, setReady] = useState(false);
+  const [logoutError, setLogoutError] = useState<string | null>(null);
 
   useEffect(() => {
     void isAuthenticated().then((authenticated: boolean) => {
       if (!authenticated) {
-        router.replace("/login");
+        const next = pathname && pathname !== "/login" ? `?next=${encodeURIComponent(pathname)}` : "";
+        router.replace(`/login${next}`);
         return;
       }
       setReady(true);
     });
-  }, [router]);
+  }, [pathname, router]);
 
-  function handleLogout() {
-    void signOut().then(() => {
-      router.replace("/login");
+  useEffect(() => {
+    const unsubscribe = onAuthStateChange((authenticated) => {
+      if (!authenticated) {
+        const next = pathname && pathname !== "/login" ? `?next=${encodeURIComponent(pathname)}` : "";
+        router.replace(`/login${next}`);
+      }
     });
+
+    return unsubscribe;
+  }, [pathname, router]);
+
+  async function handleLogout() {
+    setLogoutError(null);
+    const { error } = await signOut();
+    if (error) {
+      setLogoutError(getSignOutErrorMessage());
+      return;
+    }
+    router.replace("/login");
   }
 
   if (!ready) {
@@ -44,13 +62,18 @@ export function AppShell({ children }: AppShellProps) {
     <div className="min-h-screen bg-background">
       <div className="flex min-h-screen">
         <aside className="hidden w-72 shrink-0 border-r border-border/80 bg-surface lg:block">
-          <Sidebar onLogout={handleLogout} />
+          <Sidebar onLogout={() => void handleLogout()} />
         </aside>
 
         <div className="flex min-h-screen flex-1 flex-col">
-          <MobileNav onLogout={handleLogout}>
+          <MobileNav onLogout={() => void handleLogout()}>
             <header className="hidden items-center justify-end border-b border-border/80 bg-surface/80 px-10 py-5 backdrop-blur lg:flex">
-              <Button variant="ghost" onClick={handleLogout}>
+              {logoutError && (
+                <p className="mr-4 text-sm text-warning" role="alert">
+                  {logoutError}
+                </p>
+              )}
+              <Button variant="ghost" onClick={() => void handleLogout()}>
                 Sign out
               </Button>
             </header>

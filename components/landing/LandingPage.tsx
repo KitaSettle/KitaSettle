@@ -56,8 +56,8 @@ export function LandingPage() {
             </p>
 
             <div className="kita-enter mt-12 flex flex-col gap-4 sm:flex-row">
-              <Link href="/login">
-                <Button className="h-12 px-8 text-base">Begin your day</Button>
+              <Link href="/signup">
+                <Button className="h-12 px-8 text-base">Create account</Button>
               </Link>
               <Link href="/login">
                 <Button variant="secondary" className="h-12 px-8 text-base">

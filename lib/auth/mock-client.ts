@@ -35,8 +35,13 @@ export async function getSession() {
   return readSession();
 }
 
+function readCookieSession(): boolean {
+  if (typeof document === "undefined") return false;
+  return document.cookie.split(";").some((part) => part.trim().startsWith(`${MOCK_AUTH_COOKIE}=1`));
+}
+
 export async function isAuthenticated(): Promise<boolean> {
-  return Boolean(readSession());
+  return Boolean(readSession()) || readCookieSession();
 }
 
 export async function signInWithEmail(email: string, _password: string) {
