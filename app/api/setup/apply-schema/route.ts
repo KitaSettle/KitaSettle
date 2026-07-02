@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  const limited = await enforceRateLimit(request, null, "setup");
+  const limited = await enforceRateLimit(request, null, "mutation");
   if (limited) return limited;
 
   const before = await getSchemaHealthReport();
