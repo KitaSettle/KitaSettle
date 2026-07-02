@@ -1,4 +1,6 @@
 import type { DocumentIndexEntry } from "@/lib/types/executive-connect";
+import { KITA_EMPTY } from "@/lib/copy/kita-messages";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { SectionCard } from "@/components/dashboard/SectionCard";
 
 interface DocumentsReviewCardProps {
@@ -7,9 +9,9 @@ interface DocumentsReviewCardProps {
 
 export function DocumentsReviewCard({ documents }: DocumentsReviewCardProps) {
   return (
-    <SectionCard title="Documents Requiring Review" subtitle="Indexed from connected Drive folders">
+    <SectionCard title="Documents Requiring Review" subtitle="From your connected folders">
       {documents.length === 0 ? (
-        <p className="text-sm text-muted">No documents flagged for review.</p>
+        <EmptyState>{KITA_EMPTY.documents}</EmptyState>
       ) : (
         <ul className="space-y-3">
           {documents.map((doc) => (

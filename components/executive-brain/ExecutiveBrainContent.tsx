@@ -8,8 +8,10 @@ import type {
   ResearchQueueItem,
 } from "@/lib/types";
 import { BRAIN_SEARCH_KEYWORDS } from "@/lib/executive-brain/static-config";
+import { KITA_EMPTY } from "@/lib/copy/kita-messages";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { SectionCard } from "@/components/dashboard/SectionCard";
 import { BrainToast } from "./BrainToast";
 import { ExecutiveBrainOverview } from "./ExecutiveBrainOverview";
@@ -216,14 +218,14 @@ export function ExecutiveBrainContent({ data }: ExecutiveBrainContentProps) {
     <div className="mx-auto max-w-6xl">
       {toastMessage && <BrainToast message={toastMessage} />}
 
-      <header className="mb-8">
-        <p className="text-sm font-medium text-accent">Executive Brain</p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-          Your knowledge engine
+      <header className="mb-10 kita-enter">
+        <p className="text-sm font-medium uppercase tracking-[0.16em] text-accent">Executive Brain</p>
+        <h1 className="font-display mt-3 text-3xl tracking-tight text-foreground sm:text-4xl">
+          Everything you have entrusted to Kita
         </h1>
-        <p className="mt-3 max-w-2xl text-sm text-muted">
-          Search, review, and preserve what matters — trusted sources, research,
-          and executive memory in one calm command centre.
+        <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted">
+          Search, review, and preserve what matters — research, memory, and trusted sources in one
+          calm place.
         </p>
       </header>
 
@@ -282,9 +284,8 @@ export function ExecutiveBrainContent({ data }: ExecutiveBrainContentProps) {
       </Card>
 
       {hasSearch && !hasVisibleResults && (
-        <Card className="mb-6 p-6 text-center text-sm text-muted">
-          No results match &ldquo;{searchQuery}&rdquo;. Try one of the suggested
-          keywords above.
+        <Card className="mb-6 p-8">
+          <EmptyState>{KITA_EMPTY.search}</EmptyState>
         </Card>
       )}
 
@@ -307,11 +308,9 @@ export function ExecutiveBrainContent({ data }: ExecutiveBrainContentProps) {
               ))}
             </div>
           ) : (
-            <p className="rounded-xl bg-surface-muted/60 p-6 text-center text-sm text-muted">
-              {queue.length === 0
-                ? "Your research queue is clear. New findings will appear here for review."
-                : "No queued research matches your search."}
-            </p>
+            <EmptyState>
+              {queue.length === 0 ? KITA_EMPTY.brainQueue : KITA_EMPTY.search}
+            </EmptyState>
           )}
         </SectionCard>
       )}
@@ -443,7 +442,7 @@ export function ExecutiveBrainContent({ data }: ExecutiveBrainContentProps) {
         {(filteredActivity.length > 0 || !hasSearch) && (
           <SectionCard
             title="Latest Activity"
-            subtitle="Recent actions across your knowledge engine"
+            subtitle="Recent actions across your Executive Brain"
             className="md:col-span-2"
           >
             <ul className="divide-y divide-border">

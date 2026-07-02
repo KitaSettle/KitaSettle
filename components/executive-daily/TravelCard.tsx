@@ -1,4 +1,6 @@
 import type { StoredCalendarEvent } from "@/lib/types/executive-connect";
+import { KITA_EMPTY } from "@/lib/copy/kita-messages";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { SectionCard } from "@/components/dashboard/SectionCard";
 
 interface TravelCardProps {
@@ -18,7 +20,7 @@ export function TravelCard({ travel }: TravelCardProps) {
   return (
     <SectionCard title="Travel" subtitle="Flights, trips, and itinerary signals">
       {travel.length === 0 ? (
-        <p className="text-sm text-muted">No upcoming travel on your calendar.</p>
+        <EmptyState>{KITA_EMPTY.travel}</EmptyState>
       ) : (
         <ul className="space-y-3">
           {travel.map((item) => (

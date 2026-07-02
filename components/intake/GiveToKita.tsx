@@ -2,7 +2,10 @@
 
 import { useCallback, useRef, useState } from "react";
 import type { IntakeDelegationResult } from "@/lib/types/intake";
+import { KITA_LOADING_MESSAGES } from "@/lib/copy/kita-messages";
 import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { KitaWorking } from "@/components/ui/KitaWorking";
 import { BrainToast } from "@/components/executive-brain/BrainToast";
 
 interface GiveToKitaProps {
@@ -34,7 +37,7 @@ export function GiveToKita({ onDelegated }: GiveToKitaProps) {
         setPaste("");
         onDelegated?.();
       } catch (error) {
-        setToast(error instanceof Error ? error.message : "Could not delegate to Kita");
+        setToast(error instanceof Error ? error.message : "Kita couldn't process that just now");
       } finally {
         setBusy(false);
         window.setTimeout(() => setToast(null), 5000);
@@ -70,31 +73,45 @@ export function GiveToKita({ onDelegated }: GiveToKitaProps) {
 
   return (
     <>
-      <div className="flex flex-col gap-4">
-        <Button
-          variant="primary"
-          className="h-14 px-8 text-base"
-          onClick={() => setOpen((value) => !value)}
-        >
-          📥 Give this to Kita
-        </Button>
+      <Card className="kita-enter border-accent/15 bg-gradient-to-br from-surface to-accent-soft/30" padding="relaxed">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-xl">
+            <p className="text-sm font-medium text-accent">Give this to Kita</p>
+            <h2 className="mt-2 text-xl font-semibold tracking-tight text-foreground">
+              Hand me anything — I&apos;ll take it from here.
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed text-muted">
+              Drop a file, paste a note, or share a link. Kita reads it, understands it, and
+              remembers it in your Executive Brain.
+            </p>
+          </div>
+          <Button
+            variant={open ? "secondary" : "primary"}
+            className="h-12 shrink-0 px-8 text-base"
+            onClick={() => setOpen((value) => !value)}
+            disabled={busy}
+          >
+            {open ? "Close" : "Give this to Kita"}
+          </Button>
+        </div>
 
-        {result && (
-          <div className="rounded-2xl border border-border bg-surface p-5 whitespace-pre-line text-sm text-foreground">
+        {busy && (
+          <div className="mt-6 rounded-2xl border border-border/80 bg-background/60">
+            <KitaWorking context="intake" compact message={KITA_LOADING_MESSAGES.intake[0]} />
+          </div>
+        )}
+
+        {result && !busy && (
+          <div className="mt-6 rounded-2xl border border-border/80 bg-background px-5 py-4 whitespace-pre-line text-sm leading-relaxed text-foreground">
             {result.message}
           </div>
         )}
 
-        {open && (
-          <div className="rounded-2xl border border-border bg-surface p-5">
-            <p className="text-sm text-muted">
-              Drop anything here — Kita will read, classify, and update your Executive Brain. No
-              folders, tags, or categories required.
-            </p>
-
+        {open && !busy && (
+          <div className="mt-6 space-y-6 border-t border-border/80 pt-6">
             <div
-              className={`mt-4 rounded-2xl border-2 border-dashed p-8 text-center transition-colors ${
-                dragOver ? "border-accent bg-accent/5" : "border-border"
+              className={`rounded-3xl border-2 border-dashed p-10 text-center transition-colors duration-200 ${
+                dragOver ? "border-accent bg-accent-soft/50" : "border-border bg-background/50"
               }`}
               onDragOver={(event) => {
                 event.preventDefault();
@@ -107,12 +124,12 @@ export function GiveToKita({ onDelegated }: GiveToKitaProps) {
                 void handleFiles(event.dataTransfer.files);
               }}
             >
-              <p className="text-sm font-medium text-foreground">Drag & drop files here</p>
-              <p className="mt-1 text-xs text-muted">
-                PDF, Office docs, text, images, audio, video, CSV, Markdown
+              <p className="text-base font-medium text-foreground">Drop a file here</p>
+              <p className="mt-2 text-sm text-muted">
+                PDF, documents, images, notes — anything you&apos;d hand to a trusted assistant
               </p>
-              <div className="mt-4">
-                <Button variant="secondary" onClick={() => fileInputRef.current?.click()} disabled={busy}>
+              <div className="mt-6">
+                <Button variant="secondary" onClick={() => fileInputRef.current?.click()}>
                   Choose file
                 </Button>
                 <input
@@ -127,35 +144,41 @@ export function GiveToKita({ onDelegated }: GiveToKitaProps) {
               </div>
             </div>
 
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <div className="grid gap-6 md:grid-cols-2">
               <div>
-                <label className="text-xs font-medium uppercase tracking-wide text-muted">URL</label>
+                <label htmlFor="kita-url" className="text-sm font-medium text-foreground">
+                  Link
+                </label>
                 <input
-                  className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+                  id="kita-url"
+                  className="mt-2.5 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
                   placeholder="https://..."
                   value={url}
                   onChange={(event) => setUrl(event.target.value)}
                 />
-                <Button variant="ghost" className="mt-2" onClick={() => void handleUrl()} disabled={busy || !url.trim()}>
-                  Delegate link
+                <Button variant="ghost" className="mt-3" onClick={() => void handleUrl()} disabled={!url.trim()}>
+                  Share link with Kita
                 </Button>
               </div>
               <div>
-                <label className="text-xs font-medium uppercase tracking-wide text-muted">Paste</label>
+                <label htmlFor="kita-paste" className="text-sm font-medium text-foreground">
+                  Paste
+                </label>
                 <textarea
-                  className="mt-2 min-h-24 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
-                  placeholder="Paste text, notes, or email content..."
+                  id="kita-paste"
+                  className="mt-2.5 min-h-28 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+                  placeholder="Paste text, notes, or an email..."
                   value={paste}
                   onChange={(event) => setPaste(event.target.value)}
                 />
-                <Button variant="ghost" className="mt-2" onClick={() => void handlePaste()} disabled={busy || !paste.trim()}>
-                  Delegate text
+                <Button variant="ghost" className="mt-3" onClick={() => void handlePaste()} disabled={!paste.trim()}>
+                  Share text with Kita
                 </Button>
               </div>
             </div>
           </div>
         )}
-      </div>
+      </Card>
 
       {toast && <BrainToast message={toast} />}
     </>

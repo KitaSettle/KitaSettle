@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import type { DecisionItem, DecisionLearningEventType, DecisionQueuePayload } from "@/lib/types/decision-engine";
+import { KITA_EMPTY } from "@/lib/copy/kita-messages";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { SectionCard } from "@/components/dashboard/SectionCard";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -108,7 +110,7 @@ export function DecisionMorningCard({ queue, onAction }: DecisionMorningCardProp
           title="Today's Top Decision"
           subtitle="The platform will surface your highest-value move once inputs are available"
         >
-          <p className="text-sm text-muted">No high-value decision queued for today.</p>
+          <EmptyState>{KITA_EMPTY.decisions}</EmptyState>
         </SectionCard>
       )}
 

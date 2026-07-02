@@ -10,9 +10,9 @@ interface SectionCardProps {
 }
 
 const accentStyles = {
-  default: "border-border",
-  warning: "border-warning/20",
-  success: "border-success/20",
+  default: "border-border/80",
+  warning: "border-warning/30",
+  success: "border-success/30",
 };
 
 export function SectionCard({
@@ -23,10 +23,10 @@ export function SectionCard({
   children,
 }: SectionCardProps) {
   return (
-    <Card className={`h-full ${accentStyles[accent]} ${className}`}>
-      <div className="mb-4">
-        <h3 className="text-base font-semibold text-foreground">{title}</h3>
-        {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
+    <Card className={`h-full ${accentStyles[accent]} ${className}`} padding="relaxed">
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold tracking-tight text-foreground">{title}</h3>
+        {subtitle && <p className="mt-2 text-sm leading-relaxed text-muted">{subtitle}</p>}
       </div>
       {children}
     </Card>

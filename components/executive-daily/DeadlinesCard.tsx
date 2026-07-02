@@ -1,4 +1,6 @@
 import type { StoredCalendarEvent } from "@/lib/types/executive-connect";
+import { KITA_EMPTY } from "@/lib/copy/kita-messages";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { SectionCard } from "@/components/dashboard/SectionCard";
 
 interface DeadlinesCardProps {
@@ -18,7 +20,7 @@ export function DeadlinesCard({ deadlines }: DeadlinesCardProps) {
   return (
     <SectionCard title="Deadlines" subtitle="Upcoming reminders and due dates">
       {deadlines.length === 0 ? (
-        <p className="text-sm text-muted">No upcoming deadlines detected.</p>
+        <EmptyState>{KITA_EMPTY.deadlines}</EmptyState>
       ) : (
         <ul className="space-y-3">
           {deadlines.map((item) => (

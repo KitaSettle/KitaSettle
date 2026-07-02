@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { ExecutiveBrainData } from "@/lib/types";
+import { KitaWorking } from "@/components/ui/KitaWorking";
 import { ExecutiveBrainContent } from "./ExecutiveBrainContent";
 
 export function ExecutiveBrainLoader() {
@@ -34,18 +35,14 @@ export function ExecutiveBrainLoader() {
 
   if (error) {
     return (
-      <div className="rounded-xl border border-border bg-surface p-8 text-center text-sm text-muted">
-        {error}
+      <div className="rounded-3xl border border-border bg-surface p-10 text-center text-sm text-muted">
+        Kita couldn&apos;t open your Executive Brain right now. Please refresh and try again.
       </div>
     );
   }
 
   if (!data) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <div className="h-8 w-8 animate-pulse rounded-full bg-accent/20" />
-      </div>
-    );
+    return <KitaWorking context="brain" />;
   }
 
   return <ExecutiveBrainContent data={data} />;

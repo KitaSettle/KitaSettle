@@ -6,12 +6,13 @@ import type { DiscoveryInterviewResponse } from "@/lib/types/executive-dna";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { KitaWorking } from "@/components/ui/KitaWorking";
 
 export function DiscoveryInterviewLoader() {
   const router = useRouter();
   const [data, setData] = useState<DiscoveryInterviewResponse | null>(null);
   const [answer, setAnswer] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -50,9 +51,9 @@ export function DiscoveryInterviewLoader() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!answer.trim() || loading) return;
+    if (!answer.trim() || busy) return;
 
-    setLoading(true);
+    setBusy(true);
     setError(null);
 
     try {
@@ -76,7 +77,7 @@ export function DiscoveryInterviewLoader() {
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Failed to send answer");
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   }
 
@@ -85,41 +86,35 @@ export function DiscoveryInterviewLoader() {
   }
 
   if (!data) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <div className="h-8 w-8 animate-pulse rounded-full bg-accent/20" />
-      </div>
-    );
+    return <KitaWorking context="discovery" />;
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <div className="mb-6">
-        <p className="text-sm font-medium uppercase tracking-wide text-accent">
-          Executive DNA Discovery
-        </p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
-          Help KitaSettle learn how you work
+    <div className="mx-auto max-w-3xl kita-enter">
+      <div className="mb-10">
+        <p className="text-sm font-medium uppercase tracking-[0.16em] text-accent">Getting to know you</p>
+        <h1 className="font-display mt-3 text-3xl tracking-tight text-foreground sm:text-4xl">
+          Help Kita understand how you work
         </h1>
-        <p className="mt-2 text-muted">
-          A short conversational interview replaces traditional onboarding. KitaSettle keeps
-          learning as you approve research, save knowledge, and use your daily brief.
+        <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted">
+          A short conversation — no forms, no checklists. Kita learns from how you answer and
+          keeps refining as you use your brief each day.
         </p>
-        <div className="mt-4 flex flex-wrap gap-3">
-          <Badge variant="default">Profile confidence {data.overallConfidence}%</Badge>
-          <Badge variant="default">Target 90%</Badge>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Badge variant="default">Understanding you: {data.overallConfidence}%</Badge>
+          <Badge variant="muted">Goal: deeply personal briefs</Badge>
         </div>
       </div>
 
-      <Card className="mb-6 max-h-[28rem] overflow-y-auto">
+      <Card className="mb-8 max-h-[28rem] overflow-y-auto" padding="relaxed">
         <div className="space-y-4">
           {data.session.messages.map((message, index) => (
             <div
               key={`${message.timestamp}-${index}`}
-              className={`rounded-xl px-4 py-3 text-sm ${
+              className={`rounded-2xl px-5 py-4 text-sm leading-relaxed ${
                 message.role === "assistant"
-                  ? "bg-accent/10 text-foreground"
-                  : "ml-8 bg-background text-foreground"
+                  ? "bg-accent-soft text-foreground"
+                  : "ml-6 border border-border/80 bg-background text-foreground"
               }`}
             >
               {message.content}
@@ -130,16 +125,21 @@ export function DiscoveryInterviewLoader() {
       </Card>
 
       {!data.isComplete && (
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <textarea
             value={answer}
             onChange={(event) => setAnswer(event.target.value)}
             rows={4}
-            placeholder="Share your answer..."
-            className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-foreground outline-none transition-shadow focus:border-accent focus:ring-2 focus:ring-accent/20"
+            placeholder="Share your answer in your own words..."
+            className="w-full rounded-2xl border border-border bg-surface px-5 py-4 text-sm leading-relaxed text-foreground outline-none transition-shadow focus:border-accent focus:ring-2 focus:ring-accent/20"
           />
-          <Button type="submit" disabled={loading || !answer.trim()}>
-            {loading ? "Sending..." : "Continue"}
+          {error && (
+            <p className="text-sm text-warning" role="alert">
+              Something went wrong. Please try again.
+            </p>
+          )}
+          <Button type="submit" disabled={busy || !answer.trim()} className="h-11 px-6">
+            {busy ? "Kita is listening..." : "Continue"}
           </Button>
         </form>
       )}

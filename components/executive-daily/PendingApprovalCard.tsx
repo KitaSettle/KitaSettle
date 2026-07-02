@@ -1,4 +1,6 @@
 import type { ResearchQueueItem } from "@/lib/types";
+import { KITA_EMPTY } from "@/lib/copy/kita-messages";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Badge } from "@/components/ui/Badge";
 import { SectionCard } from "@/components/dashboard/SectionCard";
 
@@ -15,7 +17,9 @@ export function PendingApprovalCard({ items }: PendingApprovalCardProps) {
     >
       <ul className="space-y-3">
         {items.length === 0 && (
-          <li className="text-sm text-muted">No research items waiting for approval.</li>
+          <li>
+            <EmptyState>{KITA_EMPTY.pendingApprovals}</EmptyState>
+          </li>
         )}
         {items.map((item) => (
           <li

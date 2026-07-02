@@ -60,7 +60,7 @@ export function ExecutiveDailyContent({ name, data }: ExecutiveDailyContentProps
     <div className="mx-auto max-w-6xl">
       <DashboardHeader name={name} />
 
-      <div className="space-y-6">
+      <div className="space-y-8">
         <GiveToKita />
         <DecisionMorningCard queue={decisions} onAction={handleDecisionAction} />
 

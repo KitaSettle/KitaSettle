@@ -1,4 +1,6 @@
 import type { StoredCalendarEvent } from "@/lib/types/executive-connect";
+import { KITA_EMPTY } from "@/lib/copy/kita-messages";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { SectionCard } from "@/components/dashboard/SectionCard";
 
 interface TodayMeetingsCardProps {
@@ -15,7 +17,7 @@ export function TodayMeetingsCard({ meetings }: TodayMeetingsCardProps) {
   return (
     <SectionCard title="Today's Meetings" subtitle="From your connected calendar">
       {items.length === 0 ? (
-        <p className="text-sm text-muted">No meetings scheduled for today.</p>
+        <EmptyState>{KITA_EMPTY.meetings}</EmptyState>
       ) : (
         <ul className="space-y-3">
           {items.map((item) => (

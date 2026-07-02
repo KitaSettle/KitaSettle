@@ -1,4 +1,6 @@
 import type { StoredEmailMetadata } from "@/lib/types/executive-connect";
+import { KITA_EMPTY } from "@/lib/copy/kita-messages";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { SectionCard } from "@/components/dashboard/SectionCard";
 import { Badge } from "@/components/ui/Badge";
 
@@ -8,9 +10,9 @@ interface ImportantEmailsCardProps {
 
 export function ImportantEmailsCard({ emails }: ImportantEmailsCardProps) {
   return (
-    <SectionCard title="Important Emails" subtitle="Metadata only — bodies stored only when you choose">
+    <SectionCard title="Important Emails" subtitle="What needs your attention in your inbox">
       {emails.length === 0 ? (
-        <p className="text-sm text-muted">No important emails synced yet.</p>
+        <EmptyState>{KITA_EMPTY.emails}</EmptyState>
       ) : (
         <ul className="space-y-3">
           {emails.map((email) => (

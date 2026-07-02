@@ -4,13 +4,14 @@ import type { MetricValue, MissionControlPayload } from "@/lib/types/mission-con
 import { SectionCard } from "@/components/dashboard/SectionCard";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { KitaWorking } from "@/components/ui/KitaWorking";
 import { useCallback, useEffect, useState } from "react";
 
 function MetricGrid({ metrics }: { metrics: MetricValue[] }) {
   return (
     <dl className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
       {metrics.map((metric) => (
-        <div key={metric.label} className="rounded-xl border border-border bg-background p-3">
+        <div key={metric.label} className="rounded-2xl border border-border/80 bg-background/80 p-4">
           <dt className="text-xs font-medium uppercase tracking-wide text-muted">{metric.label}</dt>
           <dd className="mt-1 text-xl font-semibold text-foreground">{metric.value}</dd>
           {metric.hint && <p className="mt-1 text-xs text-muted">{metric.hint}</p>}
@@ -70,21 +71,20 @@ export function MissionControlDashboard() {
   }
 
   if (!data) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <div className="h-8 w-8 animate-pulse rounded-full bg-accent/20" />
-      </div>
-    );
+    return <KitaWorking context="missionControl" />;
   }
 
   const { executiveSummary: es, aiAnalytics: ai, executiveBrain: brain, security, infrastructure: infra, feedbackHub, errorCenter, financial, aiRoi, betaManagement } = data;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="space-y-8 kita-enter">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Mission Control</h1>
-          <p className="mt-1 text-sm text-muted">Internal operational cockpit — administrators only</p>
+          <p className="text-sm font-medium uppercase tracking-[0.16em] text-accent">Internal</p>
+          <h1 className="font-display mt-2 text-3xl tracking-tight text-foreground sm:text-4xl">
+            Mission Control
+          </h1>
+          <p className="mt-3 text-sm text-muted">Operational overview for administrators</p>
         </div>
         <Button variant="ghost" onClick={() => void load()}>
           Refresh
@@ -157,7 +157,7 @@ export function MissionControlDashboard() {
             metrics={[
               { label: "Failed Logins", value: security.failedLogins },
               { label: "Rate Limits", value: security.rateLimitEvents },
-              { label: "Prompt Injection", value: security.promptInjectionAttempts },
+              { label: "Suspicious Inputs", value: security.promptInjectionAttempts },
               { label: "API Abuse", value: security.apiAbuseEvents },
               { label: "Suspicious Activity", value: security.suspiciousActivity },
               { label: "Audit Events", value: security.auditEvents },

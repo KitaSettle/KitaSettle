@@ -1,4 +1,6 @@
 import type { ResearchQueueItem } from "@/lib/types";
+import { KITA_EMPTY } from "@/lib/copy/kita-messages";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Badge } from "@/components/ui/Badge";
 import { SectionCard } from "@/components/dashboard/SectionCard";
 
@@ -11,7 +13,9 @@ export function ResearchCard({ items }: ResearchCardProps) {
     <SectionCard title="Recent Research" subtitle="Latest findings in your queue">
       <ul className="space-y-4">
         {items.length === 0 && (
-          <li className="text-sm text-muted">No recent research items yet.</li>
+          <li>
+            <EmptyState>{KITA_EMPTY.research}</EmptyState>
+          </li>
         )}
         {items.map((item) => (
           <li key={item.id} className="rounded-xl border border-border bg-surface-muted/40 p-4">
