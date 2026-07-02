@@ -22,6 +22,13 @@ import { isSameUtcDay } from "@/lib/utils/date";
 import { nowIso } from "@/lib/utils";
 import { matchesAnyField } from "@/lib/utils";
 import { MockExecutiveDNARepository } from "./executive-dna-mock";
+import {
+  MockCalendarRepository,
+  MockDocumentRepository,
+  MockEmailRepository,
+  MockIntegrationRepository,
+  seedMockGoogleConnection,
+} from "./executive-connect-mock";
 import type { Repositories } from "../index";
 import {
   MockTrustedSourceRepository,
@@ -369,11 +376,15 @@ class MockBrainActivityRepository implements BrainActivityRepository {
 }
 
 let cachedMockRepositories: Repositories | null = null;
+let cachedMockIntegrations: MockIntegrationRepository | null = null;
 
 export function createMockRepositories(): Repositories {
   if (cachedMockRepositories) {
     return cachedMockRepositories;
   }
+
+  cachedMockIntegrations = new MockIntegrationRepository();
+  seedMockGoogleConnection("local-mock-user", cachedMockIntegrations);
 
   cachedMockRepositories = {
     users: new MockUserRepository(),
@@ -385,6 +396,10 @@ export function createMockRepositories(): Repositories {
     brainActivity: new MockBrainActivityRepository(),
     trustedSources: new MockTrustedSourceRepository(),
     executiveDna: new MockExecutiveDNARepository(),
+    integrations: cachedMockIntegrations,
+    calendar: new MockCalendarRepository(),
+    email: new MockEmailRepository(),
+    documents: new MockDocumentRepository(),
   };
 
   return cachedMockRepositories;

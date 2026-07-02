@@ -35,6 +35,8 @@ export const env = {
   openaiModel: readServer("OPENAI_MODEL") ?? "gpt-4o-mini",
   anthropicApiKey: readServer("ANTHROPIC_API_KEY"),
   googleAiApiKey: readServer("GOOGLE_AI_API_KEY"),
+  googleClientId: readServer("GOOGLE_CLIENT_ID"),
+  googleClientSecret: readServer("GOOGLE_CLIENT_SECRET"),
 } as const;
 
 export function getPublicEnv() {
@@ -82,6 +84,16 @@ export type AIProviderMode = "openai" | "mock";
 
 export function getAIProviderMode(): AIProviderMode {
   return isOpenAIConfigured() ? "openai" : "mock";
+}
+
+export function isGoogleOAuthConfigured(): boolean {
+  const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
+  if (!clientId || !clientSecret) return false;
+  if (clientId.includes("your-google-client-id") || clientSecret.includes("your-google-client-secret")) {
+    return false;
+  }
+  return true;
 }
 
 export function assertProductionEnv(): void {

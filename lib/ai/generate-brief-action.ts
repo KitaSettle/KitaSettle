@@ -1,7 +1,8 @@
 import type { BrainServices } from "@/lib/types/brain";
-import type { ExecutiveBriefOutput } from "@/lib/types/executive";
+import type { Repositories } from "@/lib/repositories";
+import type { CalendarEvent, ExecutiveBriefOutput } from "@/lib/types/executive";
 import type { AIExecutiveBriefOutput } from "./types";
-import { mockCalendarEvents, mockExecutiveTasks } from "@/lib/executive/mock-executive-inputs";
+import { mockExecutiveTasks } from "@/lib/executive/mock-executive-inputs";
 import { createExecutiveBriefHistoryStore } from "./brief-history-store";
 
 export function mapAIBriefToExecutiveBriefOutput(
@@ -26,24 +27,39 @@ export function mapAIBriefToExecutiveBriefOutput(
   };
 }
 
+async function loadCalendarEvents(userId: string, repos?: Repositories): Promise<CalendarEvent[]> {
+  if (!repos) return [];
+
+  const events = await repos.calendar.listToday(userId, "google");
+  return events.map((event) => ({
+    id: event.id,
+    title: event.title,
+    startAt: event.startAt,
+    endAt: event.endAt,
+    category: event.category,
+  }));
+}
+
 export class GenerateBriefAction {
   constructor(
     private services: BrainServices,
     private userId: string,
+    private repos?: Repositories,
   ) {}
 
   async execute(): Promise<ExecutiveBriefOutput> {
-    const [research, knowledge, memory] = await Promise.all([
+    const [research, knowledge, memory, calendar] = await Promise.all([
       this.services.researchQueue.list(),
       this.services.knowledge.getAll(),
       this.services.memory.getAll(),
+      loadCalendarEvents(this.userId, this.repos),
     ]);
 
     const aiBrief = await this.services.providers.ai.generateExecutiveBrief({
       research,
       knowledge,
       memory,
-      calendar: mockCalendarEvents,
+      calendar: calendar.length > 0 ? calendar : [],
       tasks: mockExecutiveTasks,
     });
 
@@ -57,6 +73,7 @@ export class GenerateBriefAction {
 export function createGenerateBriefAction(
   services: BrainServices,
   userId: string,
+  repos?: Repositories,
 ): GenerateBriefAction {
-  return new GenerateBriefAction(services, userId);
+  return new GenerateBriefAction(services, userId, repos);
 }

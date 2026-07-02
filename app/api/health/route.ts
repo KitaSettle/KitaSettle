@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { env, getAIProviderMode, getDataMode, isOpenAIConfigured, isSupabaseConfigured } from "@/lib/config/env";
+import { env, getAIProviderMode, getDataMode, isGoogleOAuthConfigured, isOpenAIConfigured, isSupabaseConfigured } from "@/lib/config/env";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -17,6 +17,7 @@ export async function GET() {
     supabaseConfigured: isSupabaseConfigured(),
     aiProvider: aiProviderMode,
     openaiConfigured: isOpenAIConfigured(),
+    googleOAuthConfigured: isGoogleOAuthConfigured(),
     timestamp: new Date().toISOString(),
     modules: {
       ui: "operational",
@@ -28,6 +29,7 @@ export async function GET() {
       aiProvider: aiProviderMode,
       multiAgent: aiProviderMode === "openai" ? "openai" : "mock",
       auth: dataMode === "supabase" ? "supabase" : "mock",
+      executiveConnect: isGoogleOAuthConfigured() ? "google-oauth-ready" : "mock-seeded",
     },
     limitations: [
       aiProviderMode === "mock"

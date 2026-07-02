@@ -9,6 +9,11 @@ import {
   emptyRecommendations,
   withExecutiveDnaFallback,
 } from "@/lib/executive-dna/defaults";
+import { buildExecutiveConnectSnapshot } from "@/lib/integrations/connect-snapshot-service";
+import {
+  EMPTY_CONNECT_SNAPSHOT,
+  withConnectFallback,
+} from "@/lib/integrations/defaults";
 import { mapResearchQueueRecordToUi } from "@/lib/executive-brain/mappers";
 import { isSameUtcDay } from "@/lib/utils/date";
 
@@ -23,7 +28,7 @@ export async function generateIfMissing(
 
   if (!brief) {
     const services = await createBrainServices(userId, undefined, { server: true });
-    await createGenerateBriefAction(services, userId).execute();
+    await createGenerateBriefAction(services, userId, repos).execute();
     brief = await repos.executiveBriefs.getBriefForDate(userId, today);
     generatedToday = Boolean(brief);
   }
@@ -45,7 +50,7 @@ export async function generateIfMissing(
     repos.trustedSources.list(),
   ]);
 
-  const [status, personalization, recommendations] = await Promise.all([
+  const [status, personalization, recommendations, connect] = await Promise.all([
     withExecutiveDnaFallback(
       () => dnaEngine.getStatus(userId),
       DEFAULT_EXECUTIVE_DNA_STATUS,
@@ -57,6 +62,10 @@ export async function generateIfMissing(
     withExecutiveDnaFallback(
       () => dnaEngine.recommendationService.list(userId),
       emptyRecommendations(),
+    ),
+    withConnectFallback(
+      () => buildExecutiveConnectSnapshot(userId, repos),
+      EMPTY_CONNECT_SNAPSHOT,
     ),
   ]);
 
@@ -93,5 +102,6 @@ export async function generateIfMissing(
       personalization,
       recommendations,
     },
+    connect,
   };
 }

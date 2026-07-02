@@ -30,6 +30,22 @@ import {
   type ExecutiveDNARepository,
 } from "./executive-dna-repository";
 import {
+  SupabaseIntegrationRepository,
+  type IntegrationRepository,
+} from "./integration-repository";
+import {
+  SupabaseCalendarRepository,
+  type CalendarRepository,
+} from "./calendar-repository";
+import {
+  SupabaseEmailRepository,
+  type EmailRepository,
+} from "./email-repository";
+import {
+  SupabaseDocumentRepository,
+  type DocumentRepository,
+} from "./document-repository";
+import {
   SupabaseTrustedSourceRepository,
   type TrustedSourceRepository,
 } from "./trusted-source-repository";
@@ -44,6 +60,10 @@ export interface Repositories {
   brainActivity: BrainActivityRepository;
   trustedSources: TrustedSourceRepository;
   executiveDna: ExecutiveDNARepository;
+  integrations: IntegrationRepository;
+  calendar: CalendarRepository;
+  email: EmailRepository;
+  documents: DocumentRepository;
 }
 
 export function createRepositories(client: SupabaseClient): Repositories {
@@ -57,6 +77,10 @@ export function createRepositories(client: SupabaseClient): Repositories {
     brainActivity: new SupabaseBrainActivityRepository(client),
     trustedSources: new SupabaseTrustedSourceRepository(client),
     executiveDna: new SupabaseExecutiveDNARepository(client),
+    integrations: new SupabaseIntegrationRepository(client),
+    calendar: new SupabaseCalendarRepository(client),
+    email: new SupabaseEmailRepository(client),
+    documents: new SupabaseDocumentRepository(client),
   };
 }
 
@@ -66,6 +90,10 @@ export type {
   ResearchQueueRepository,
   ExecutiveBriefRepository,
   ExecutiveDNARepository,
+  IntegrationRepository,
+  CalendarRepository,
+  EmailRepository,
+  DocumentRepository,
   SkillRepository,
   UserRepository,
   BrainActivityRepository,

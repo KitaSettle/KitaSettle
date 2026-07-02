@@ -2,13 +2,19 @@ import type { DailyExecutiveBriefPayload } from "@/lib/types/daily-executive-bri
 import { Badge } from "@/components/ui/Badge";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { ActionCard } from "./ActionCard";
+import { ConnectStatusCard } from "./ConnectStatusCard";
+import { DeadlinesCard } from "./DeadlinesCard";
+import { DocumentsReviewCard } from "./DocumentsReviewCard";
 import { ExecutiveBriefCard } from "./ExecutiveBriefCard";
+import { ImportantEmailsCard } from "./ImportantEmailsCard";
 import { OpportunityCard } from "./OpportunityCard";
 import { PendingApprovalCard } from "./PendingApprovalCard";
 import { PriorityCard } from "./PriorityCard";
 import { RecommendationCard } from "./RecommendationCard";
 import { ResearchCard } from "./ResearchCard";
 import { RiskCard } from "./RiskCard";
+import { TodayMeetingsCard } from "./TodayMeetingsCard";
+import { TravelCard } from "./TravelCard";
 
 interface ExecutiveDailyContentProps {
   name: string;
@@ -33,6 +39,7 @@ export function ExecutiveDailyContent({ name, data }: ExecutiveDailyContentProps
     trustedSourcesCount,
     generatedToday,
     dna,
+    connect,
   } = data;
 
   return (
@@ -63,6 +70,19 @@ export function ExecutiveDailyContent({ name, data }: ExecutiveDailyContentProps
 
       <div className="space-y-6">
         <ExecutiveBriefCard brief={brief} generatedToday={generatedToday} />
+
+        <ConnectStatusCard
+          integrations={connect.integrations}
+          googleConfigured={connect.googleConfigured}
+        />
+
+        <div className="grid gap-6 md:grid-cols-2">
+          <TodayMeetingsCard meetings={connect.todayMeetings} />
+          <ImportantEmailsCard emails={connect.importantEmails} />
+          <DeadlinesCard deadlines={connect.deadlines} />
+          <TravelCard travel={connect.travel} />
+          <DocumentsReviewCard documents={connect.documentsToReview} />
+        </div>
 
         {dna?.recommendations && (
           <RecommendationCard recommendations={dna.recommendations} />

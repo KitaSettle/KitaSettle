@@ -4,6 +4,7 @@ import type {
   ExecutiveDNAStatus,
   ExecutivePersonalizationHints,
 } from "./executive-dna";
+import type { ExecutiveConnectSnapshot } from "./executive-connect";
 
 export interface StoredExecutiveBrief extends ExecutiveBrief {
   id: string;
@@ -22,4 +23,5 @@ export interface DailyExecutiveBriefPayload {
     personalization: ExecutivePersonalizationHints;
     recommendations: ExecutiveDNARecommendation[];
   };
+  connect: ExecutiveConnectSnapshot;
 }
