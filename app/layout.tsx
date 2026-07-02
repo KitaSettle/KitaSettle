@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Instrument_Serif } from "next/font/google";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import { getPublicEnv } from "@/lib/config/env";
 import "./globals.css";
 
 const inter = Inter({
@@ -29,9 +30,22 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const publicEnv = getPublicEnv();
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.__KITASETTLE_PUBLIC_ENV__=${JSON.stringify({
+              appName: publicEnv.appName,
+              appEnv: publicEnv.appEnv,
+              appUrl: publicEnv.appUrl,
+              supabaseUrl: publicEnv.supabaseUrl,
+              supabaseAnonKey: publicEnv.supabaseAnonKey,
+            })};`,
+          }}
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('kitasettle-theme');var d=t==='dark'||(t!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);document.documentElement.style.colorScheme=d?'dark':'light';}catch(e){}})();`,

@@ -1,15 +1,21 @@
 /**
  * Typed environment configuration for KitaSettle.
  * Client-safe values use NEXT_PUBLIC_ prefix.
+ *
+ * IMPORTANT: Public env vars must use direct `process.env.NEXT_PUBLIC_*` reads.
+ * Dynamic `process.env[name]` lookups are not inlined by Next.js and break auth.
  */
 
-function readPublic(name: string, fallback: string): string {
-  return process.env[name]?.trim() || fallback;
-}
+import { resolvePublicEnv } from "./runtime-public";
 
 function readServer(name: string): string | undefined {
   const value = process.env[name]?.trim();
   return value || undefined;
+}
+
+function readDirectPublic(value: string | undefined, fallback: string): string {
+  const trimmed = value?.trim();
+  return trimmed || fallback;
 }
 
 export const env = {
@@ -17,16 +23,16 @@ export const env = {
   isProduction: process.env.NODE_ENV === "production",
   isDevelopment: process.env.NODE_ENV === "development",
 
-  appName: readPublic("NEXT_PUBLIC_APP_NAME", "KitaSettle Alpha"),
-  appEnv: readPublic("NEXT_PUBLIC_APP_ENV", "alpha"),
-  appUrl: readPublic("NEXT_PUBLIC_APP_URL", "http://localhost:3000"),
+  appName: readDirectPublic(process.env.NEXT_PUBLIC_APP_NAME, "KitaSettle Alpha"),
+  appEnv: readDirectPublic(process.env.NEXT_PUBLIC_APP_ENV, "alpha"),
+  appUrl: readDirectPublic(process.env.NEXT_PUBLIC_APP_URL, "http://localhost:3000"),
 
-  supabaseUrl: readPublic(
-    "NEXT_PUBLIC_SUPABASE_URL",
+  supabaseUrl: readDirectPublic(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
     "https://placeholder.supabase.co",
   ),
-  supabaseAnonKey: readPublic(
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  supabaseAnonKey: readDirectPublic(
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     "placeholder-anon-key",
   ),
   supabaseServiceRoleKey: readServer("SUPABASE_SERVICE_ROLE_KEY"),
@@ -72,15 +78,16 @@ export function assertServerSecretsNotPublic(): void {
 const PLACEHOLDER_URL_MARKERS = ["placeholder", "your-project.supabase.co"];
 const PLACEHOLDER_KEY_MARKERS = ["placeholder", "your-anon-key"];
 
-export function isSupabaseConfigured(): boolean {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
-
+function isValidSupabaseConfig(url: string, anonKey: string): boolean {
   if (!url || !anonKey) return false;
   if (PLACEHOLDER_URL_MARKERS.some((marker) => url.includes(marker))) return false;
   if (PLACEHOLDER_KEY_MARKERS.some((marker) => anonKey.includes(marker))) return false;
-
   return true;
+}
+
+export function isSupabaseConfigured(): boolean {
+  const { supabaseUrl, supabaseAnonKey } = resolvePublicEnv();
+  return isValidSupabaseConfig(supabaseUrl, supabaseAnonKey);
 }
 
 export type DataMode = "supabase" | "mock";
