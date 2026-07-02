@@ -3,6 +3,7 @@ import type { ExecutiveConnectSnapshot } from "@/lib/types/executive-connect";
 import type {
   DecisionCandidate,
   DecisionFactors,
+  DecisionInputSource,
 } from "@/lib/types/decision-engine";
 import type { ExecutiveDNAProfile } from "@/lib/types/executive-dna";
 import type { ResearchQueueRecord } from "@/lib/types/research";
@@ -15,6 +16,26 @@ function clamp(value: number, min = 0, max = 100): number {
   return Math.min(max, Math.max(min, Math.round(value)));
 }
 
+function learningValueForSource(source: DecisionInputSource): number {
+  switch (source) {
+    case "approval":
+    case "research":
+      return 80;
+    case "knowledge":
+      return 72;
+    case "memory":
+      return 68;
+    case "document":
+      return 58;
+    case "project":
+      return 62;
+    case "executive_dna":
+      return 70;
+    default:
+      return 45;
+  }
+}
+
 function boostForDna(factors: DecisionFactors, dna: ExecutiveDNAProfile | null, haystack: string): DecisionFactors {
   if (!dna) return factors;
   const emphasis = [...dna.profile.focusAreas, ...dna.profile.goals, ...dna.profile.importantTopics]
@@ -24,7 +45,21 @@ function boostForDna(factors: DecisionFactors, dna: ExecutiveDNAProfile | null, 
   return {
     ...factors,
     strategicImportance: clamp(factors.strategicImportance + (match ? 15 : 0)),
+    learningValue: clamp(factors.learningValue + (match ? 8 : 0)),
   };
+}
+
+function buildFactors(
+  partial: Omit<DecisionFactors, "learningValue">,
+  source: DecisionInputSource,
+  dna: ExecutiveDNAProfile | null,
+  haystack: string,
+): DecisionFactors {
+  return boostForDna(
+    { ...partial, learningValue: clamp(learningValueForSource(source)) },
+    dna,
+    haystack,
+  );
 }
 
 export async function collectDecisionCandidates(
@@ -49,7 +84,7 @@ export async function collectDecisionCandidates(
       actionLabel: `Prepare for ${meeting.title}`,
       source: "calendar",
       sourceRef: meeting.id,
-      factors: boostForDna(
+      factors: buildFactors(
         {
           impact: clamp(70),
           urgency: clamp(hours <= 2 ? 95 : hours <= 6 ? 80 : 55),
@@ -61,6 +96,7 @@ export async function collectDecisionCandidates(
           financialEffect: clamp(35),
           strategicImportance: clamp(60),
         },
+        "calendar",
         dnaProfile,
         meeting.title,
       ),
@@ -77,7 +113,7 @@ export async function collectDecisionCandidates(
       actionLabel: isApproval ? `Approve or respond: ${email.subject}` : `Review email: ${email.subject}`,
       source: "email",
       sourceRef: email.id,
-      factors: boostForDna(
+      factors: buildFactors(
         {
           impact: clamp(isApproval ? 85 : 60),
           urgency: clamp(isUrgent ? 90 : 55),
@@ -89,6 +125,7 @@ export async function collectDecisionCandidates(
           financialEffect: clamp(email.classification === "finance" ? 88 : isApproval ? 80 : 40),
           strategicImportance: clamp(isApproval ? 70 : 45),
         },
+        "email",
         dnaProfile,
         `${email.subject} ${email.snippet ?? ""}`,
       ),
@@ -107,7 +144,7 @@ export async function collectDecisionCandidates(
       actionLabel: `Review document: ${doc.name}`,
       source: "document",
       sourceRef: doc.id,
-      factors: boostForDna(
+      factors: buildFactors(
         {
           impact: clamp(75),
           urgency: clamp(65),
@@ -119,6 +156,7 @@ export async function collectDecisionCandidates(
           financialEffect: clamp(/proposal|contract|commercial/i.test(doc.name) ? 90 : 50),
           strategicImportance: clamp(70),
         },
+        "document",
         dnaProfile,
         `${doc.name} ${doc.summary ?? ""}`,
       ),
@@ -134,7 +172,7 @@ export async function collectDecisionCandidates(
       actionLabel: `Act before deadline: ${deadline.title}`,
       source: "deadline",
       sourceRef: deadline.id,
-      factors: boostForDna(
+      factors: buildFactors(
         {
           impact: clamp(80),
           urgency: clamp(hours <= 24 ? 98 : hours <= 72 ? 85 : 65),
@@ -146,6 +184,7 @@ export async function collectDecisionCandidates(
           financialEffect: clamp(/proposal|invoice|contract/i.test(deadline.title) ? 88 : 45),
           strategicImportance: clamp(75),
         },
+        "deadline",
         dnaProfile,
         deadline.title,
       ),
@@ -160,17 +199,22 @@ export async function collectDecisionCandidates(
       actionLabel: `Follow up on memory: ${item.title}`,
       source: "memory",
       sourceRef: item.id,
-      factors: {
-        impact: clamp(55),
-        urgency: clamp(50),
-        risk: clamp(35),
-        confidence: 72,
-        dependencies: clamp(30),
-        estimatedTime: clamp(20),
-        energyRequired: clamp(25),
-        financialEffect: clamp(30),
-        strategicImportance: clamp(50),
-      },
+      factors: buildFactors(
+        {
+          impact: clamp(55),
+          urgency: clamp(50),
+          risk: clamp(35),
+          confidence: 72,
+          dependencies: clamp(30),
+          estimatedTime: clamp(20),
+          energyRequired: clamp(25),
+          financialEffect: clamp(30),
+          strategicImportance: clamp(50),
+        },
+        "memory",
+        dnaProfile,
+        item.title,
+      ),
       metadata: { category: item.category },
     });
   }
@@ -182,7 +226,7 @@ export async function collectDecisionCandidates(
         title: project,
         actionLabel: `Advance project: ${project}`,
         source: "project",
-        factors: boostForDna(
+        factors: buildFactors(
           {
             impact: clamp(78),
             urgency: clamp(60),
@@ -194,6 +238,7 @@ export async function collectDecisionCandidates(
             financialEffect: clamp(65),
             strategicImportance: clamp(85),
           },
+          "project",
           dnaProfile,
           project,
         ),
@@ -209,17 +254,22 @@ export async function collectDecisionCandidates(
       actionLabel: `Apply knowledge: ${top.title}`,
       source: "knowledge",
       sourceRef: top.id,
-      factors: {
-        impact: clamp(50),
-        urgency: clamp(35),
-        risk: clamp(25),
-        confidence: 70,
-        dependencies: clamp(20),
-        estimatedTime: clamp(15),
-        energyRequired: clamp(20),
-        financialEffect: clamp(30),
-        strategicImportance: clamp(45),
-      },
+      factors: buildFactors(
+        {
+          impact: clamp(50),
+          urgency: clamp(35),
+          risk: clamp(25),
+          confidence: 70,
+          dependencies: clamp(20),
+          estimatedTime: clamp(15),
+          energyRequired: clamp(20),
+          financialEffect: clamp(30),
+          strategicImportance: clamp(45),
+        },
+        "knowledge",
+        dnaProfile,
+        top.title,
+      ),
     });
   }
 
@@ -233,7 +283,7 @@ function buildResearchCandidate(item: ResearchQueueRecord, dnaProfile: Executive
     actionLabel: `Approve research: ${item.title}`,
     source: "approval",
     sourceRef: item.id,
-    factors: boostForDna(
+    factors: buildFactors(
       {
         impact: clamp(72),
         urgency: clamp(68),
@@ -245,6 +295,7 @@ function buildResearchCandidate(item: ResearchQueueRecord, dnaProfile: Executive
         financialEffect: clamp(35),
         strategicImportance: clamp(60),
       },
+      "approval",
       dnaProfile,
       `${item.title} ${item.tags.join(" ")}`,
     ),

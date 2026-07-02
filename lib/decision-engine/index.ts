@@ -3,4 +3,5 @@ export { DecisionScoreEngine, DecisionScoringService } from "./decision-scoring-
 export { DecisionExplainer } from "./decision-explainer";
 export { DecisionLearningService } from "./decision-learning-service";
 export { DecisionQueue, DECISION_TOP_ACTION_LIMIT } from "./decision-queue";
+export { DecisionTimelineService } from "./decision-timeline";
 export * from "./defaults";

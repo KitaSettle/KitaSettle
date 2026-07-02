@@ -39,8 +39,7 @@ export class DecisionLearningService {
     eventType: DecisionLearningEventType,
   ): Partial<DecisionFactorWeights> {
     const sourceBoost = this.sourceWeightKey(decision.source);
-    const delta =
-      eventType === "completed" ? 0.01 : eventType === "ignored" || eventType === "rejected" ? -0.015 : -0.005;
+    const delta = this.deltaForEvent(eventType);
     if (!sourceBoost) return {};
 
     return {
@@ -49,6 +48,22 @@ export class DecisionLearningService {
         Math.min(0.3, (DEFAULT_DECISION_WEIGHTS[sourceBoost] ?? 0.1) + delta),
       ),
     } as Partial<DecisionFactorWeights>;
+  }
+
+  private deltaForEvent(eventType: DecisionLearningEventType): number {
+    switch (eventType) {
+      case "completed":
+      case "accepted":
+        return 0.01;
+      case "ignored":
+      case "rejected":
+      case "dismissed":
+        return -0.015;
+      case "delayed":
+        return -0.005;
+      default:
+        return 0;
+    }
   }
 
   private sourceWeightKey(source: DecisionInputSource): keyof DecisionFactorWeights | null {
@@ -61,6 +76,10 @@ export class DecisionLearningService {
         return "financialEffect";
       case "calendar":
         return "impact";
+      case "research":
+      case "knowledge":
+      case "memory":
+        return "learningValue";
       case "project":
       case "executive_dna":
         return "strategicImportance";
@@ -87,6 +106,7 @@ export class DecisionLearningService {
       energyRequired: next.energyRequired / total,
       financialEffect: next.financialEffect / total,
       strategicImportance: next.strategicImportance / total,
+      learningValue: next.learningValue / total,
     };
   }
 }

@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import type { DailyExecutiveBriefPayload } from "@/lib/types/daily-executive-brief";
-import { Badge } from "@/components/ui/Badge";
+import type { DecisionTimelinePayload } from "@/lib/types/decision-engine";
 import { Button } from "@/components/ui/Button";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { ActionCard } from "./ActionCard";
 import { ConnectStatusCard } from "./ConnectStatusCard";
 import { DeadlinesCard } from "./DeadlinesCard";
 import { DecisionMorningCard } from "./DecisionMorningCard";
+import { DecisionTimelineCard } from "./DecisionTimelineCard";
 import { DocumentsReviewCard } from "./DocumentsReviewCard";
 import { ExecutiveBriefCard } from "./ExecutiveBriefCard";
 import { ImportantEmailsCard } from "./ImportantEmailsCard";
@@ -26,50 +27,44 @@ interface ExecutiveDailyContentProps {
   data: DailyExecutiveBriefPayload;
 }
 
-function formatLastUpdated(iso: string): string {
-  return new Date(iso).toLocaleString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
 export function ExecutiveDailyContent({ name, data }: ExecutiveDailyContentProps) {
   const [showAll, setShowAll] = useState(false);
+  const [timeline, setTimeline] = useState<DecisionTimelinePayload | null>(null);
   const {
     brief,
     recentResearch,
     pendingApprovals,
-    trustedSourcesCount,
-    generatedToday,
     dna,
     connect,
     decisions,
   } = data;
 
+  const refreshTimeline = useCallback(async () => {
+    const response = await fetch("/api/decisions/timeline");
+    if (response.ok) {
+      setTimeline((await response.json()) as DecisionTimelinePayload);
+    }
+  }, []);
+
+  const handleDecisionAction = useCallback(async () => {
+    await refreshTimeline();
+  }, [refreshTimeline]);
+
+  const openAll = useCallback(async () => {
+    setShowAll(true);
+    if (!timeline) await refreshTimeline();
+  }, [timeline, refreshTimeline]);
+
   return (
     <div className="mx-auto max-w-6xl">
       <DashboardHeader name={name} />
 
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <Badge variant="default">Confidence {brief.confidenceScore}%</Badge>
-        <Badge variant="default">Last updated {formatLastUpdated(brief.updatedAt)}</Badge>
-        <Badge variant="default">{trustedSourcesCount} trusted sources</Badge>
-        {generatedToday && <Badge variant="default">Generated today</Badge>}
-        {decisions.topActions.length > 0 && (
-          <Badge variant="default">{decisions.topActions.length} decisions for today</Badge>
-        )}
-      </div>
-
       <div className="space-y-6">
-        <DecisionMorningCard queue={decisions} />
-        <ExecutiveBriefCard brief={brief} generatedToday={generatedToday} />
+        <DecisionMorningCard queue={decisions} onAction={handleDecisionAction} />
 
         {!showAll && (
           <div className="flex justify-center">
-            <Button variant="ghost" onClick={() => setShowAll(true)}>
+            <Button variant="ghost" onClick={() => void openAll()}>
               View all
             </Button>
           </div>
@@ -77,6 +72,9 @@ export function ExecutiveDailyContent({ name, data }: ExecutiveDailyContentProps
 
         {showAll && (
           <>
+            <ExecutiveBriefCard brief={brief} generatedToday={data.generatedToday} />
+            {timeline && <DecisionTimelineCard entries={timeline.entries} />}
+
             {dna?.personalization && (
               <div className="rounded-2xl border border-border bg-surface px-5 py-4">
                 <p className="text-sm font-medium text-foreground">

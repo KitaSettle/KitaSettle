@@ -12,13 +12,22 @@ export type DecisionInputSource =
   | "memory"
   | "executive_dna";
 
-export type DecisionStatus = "pending" | "completed" | "ignored" | "delayed" | "rejected";
+export type DecisionStatus =
+  | "pending"
+  | "completed"
+  | "ignored"
+  | "delayed"
+  | "rejected"
+  | "accepted"
+  | "dismissed";
 
 export type DecisionLearningEventType =
   | "completed"
   | "ignored"
   | "delayed"
-  | "rejected";
+  | "rejected"
+  | "accepted"
+  | "dismissed";
 
 export interface DecisionFactors {
   impact: number;
@@ -30,9 +39,18 @@ export interface DecisionFactors {
   energyRequired: number;
   financialEffect: number;
   strategicImportance: number;
+  learningValue: number;
 }
 
 export type DecisionFactorWeights = DecisionFactors;
+
+export interface DecisionExplanation {
+  whyMatters: string;
+  whyNow: string;
+  ifIgnored: string;
+  expectedOutcome: string;
+  confidenceLevel: number;
+}
 
 export interface DecisionItem {
   id: EntityId;
@@ -47,6 +65,7 @@ export interface DecisionItem {
   confidence: number;
   explanation: string;
   because: string[];
+  explanationDetail: DecisionExplanation;
   status: DecisionStatus;
   queuedFor: string;
   metadata: Record<string, unknown>;
@@ -66,6 +85,7 @@ export interface DecisionCandidate {
 
 export interface DecisionQueuePayload {
   generatedAt: ISO8601;
+  topDecision: DecisionItem | null;
   topActions: DecisionItem[];
   allDecisions: DecisionItem[];
   totalCandidates: number;
@@ -85,16 +105,37 @@ export interface DecisionLearningEvent {
   createdAt: ISO8601;
 }
 
+export interface DecisionTimelineEntry {
+  id: EntityId;
+  userId: EntityId;
+  decisionId: EntityId | null;
+  title: string;
+  actionLabel: string;
+  whyMade: string;
+  outcome: string | null;
+  eventType: DecisionLearningEventType | "queued";
+  score: number;
+  confidence: number;
+  source: DecisionInputSource | null;
+  recordedAt: ISO8601;
+}
+
+export interface DecisionTimelinePayload {
+  entries: DecisionTimelineEntry[];
+  total: number;
+}
+
 export const DEFAULT_DECISION_WEIGHTS: DecisionFactorWeights = {
-  impact: 0.18,
-  urgency: 0.16,
+  impact: 0.16,
+  urgency: 0.14,
   risk: 0.12,
-  confidence: 0.1,
-  dependencies: 0.08,
-  estimatedTime: 0.06,
+  confidence: 0.09,
+  dependencies: 0.07,
+  estimatedTime: 0.05,
   energyRequired: 0.05,
-  financialEffect: 0.15,
-  strategicImportance: 0.1,
+  financialEffect: 0.13,
+  strategicImportance: 0.09,
+  learningValue: 0.1,
 };
 
 export function createEmptyDecisionFactors(): DecisionFactors {
@@ -108,5 +149,16 @@ export function createEmptyDecisionFactors(): DecisionFactors {
     energyRequired: 0,
     financialEffect: 0,
     strategicImportance: 0,
+    learningValue: 0,
+  };
+}
+
+export function createEmptyDecisionExplanation(): DecisionExplanation {
+  return {
+    whyMatters: "",
+    whyNow: "",
+    ifIgnored: "",
+    expectedOutcome: "",
+    confidenceLevel: 0,
   };
 }

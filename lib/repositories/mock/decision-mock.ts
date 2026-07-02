@@ -5,6 +5,7 @@ import type {
   DecisionLearningEvent,
   DecisionLearningEventType,
   DecisionStatus,
+  DecisionTimelineEntry,
 } from "@/lib/types/decision-engine";
 import { DEFAULT_DECISION_WEIGHTS } from "@/lib/types/decision-engine";
 import { createId, nowIso } from "@/lib/utils";
@@ -18,6 +19,7 @@ export class MockDecisionRepository implements DecisionRepository {
   private items = new Map<string, DecisionItem[]>();
   private weights = new Map<string, DecisionFactorWeights>();
   private events = new Map<string, DecisionLearningEvent[]>();
+  private timeline = new Map<string, DecisionTimelineEntry[]>();
 
   private key(userId: string, date: string): string {
     return `${userId}:${date}`;
@@ -80,5 +82,24 @@ export class MockDecisionRepository implements DecisionRepository {
 
   async getLearningHistory(userId: string, limit = 50): Promise<DecisionLearningEvent[]> {
     return clone((this.events.get(userId) ?? []).slice(0, limit));
+  }
+
+  async recordTimelineEntry(
+    userId: string,
+    entry: Omit<DecisionTimelineEntry, "id" | "userId" | "recordedAt">,
+  ): Promise<void> {
+    const created: DecisionTimelineEntry = {
+      ...entry,
+      id: createId("dec-timeline"),
+      userId,
+      recordedAt: nowIso(),
+    };
+    const entries = this.timeline.get(userId) ?? [];
+    entries.unshift(created);
+    this.timeline.set(userId, entries);
+  }
+
+  async getTimeline(userId: string, limit = 30): Promise<DecisionTimelineEntry[]> {
+    return clone((this.timeline.get(userId) ?? []).slice(0, limit));
   }
 }

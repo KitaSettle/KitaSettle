@@ -1,5 +1,6 @@
 import type {
   DecisionCandidate,
+  DecisionExplanation,
   DecisionFactorWeights,
   DecisionFactors,
 } from "@/lib/types/decision-engine";
@@ -19,7 +20,8 @@ export class DecisionScoringService {
       (100 - factors.estimatedTime) * weights.estimatedTime +
       (100 - factors.energyRequired) * weights.energyRequired +
       factors.financialEffect * weights.financialEffect +
-      factors.strategicImportance * weights.strategicImportance;
+      factors.strategicImportance * weights.strategicImportance +
+      factors.learningValue * weights.learningValue;
 
     return clamp(weighted);
   }
@@ -52,3 +54,5 @@ export class DecisionScoreEngine {
     return this.scoring.scoreCandidate(factors, weights);
   }
 }
+
+export type { DecisionExplanation };

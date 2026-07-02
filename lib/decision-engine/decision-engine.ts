@@ -11,15 +11,18 @@ import { DecisionExplainer } from "./decision-explainer";
 import { DecisionLearningService } from "./decision-learning-service";
 import { DecisionQueue } from "./decision-queue";
 import { DecisionScoreEngine } from "./decision-scoring-service";
+import { DecisionTimelineService } from "./decision-timeline";
 
 export class DecisionEngine {
   private scoreEngine = new DecisionScoreEngine();
   private explainer = new DecisionExplainer();
   private queue = new DecisionQueue();
   private learning: DecisionLearningService;
+  private timeline: DecisionTimelineService;
 
   constructor(private repos: Repositories) {
     this.learning = new DecisionLearningService(repos);
+    this.timeline = new DecisionTimelineService(repos);
   }
 
   async generateMorningQueue(
@@ -43,7 +46,7 @@ export class DecisionEngine {
 
     const explained: DecisionItem[] = [];
     for (const candidate of scored.slice(0, 12)) {
-      const { explanation, because } = await this.explainer.explain(candidate);
+      const { explanation, because, explanationDetail } = await this.explainer.explain(candidate);
       explained.push({
         id: createId("decision"),
         userId,
@@ -57,6 +60,7 @@ export class DecisionEngine {
         confidence: candidate.confidence,
         explanation,
         because,
+        explanationDetail,
         status: "pending",
         queuedFor: today,
         metadata: candidate.metadata ?? {},
@@ -66,6 +70,11 @@ export class DecisionEngine {
     }
 
     await this.repos.decisions.upsertDecisions(userId, explained);
+
+    for (const item of explained.slice(0, 3)) {
+      await this.timeline.recordQueued(userId, item);
+    }
+
     const merged = await this.repos.decisions.listForDate(userId, today);
     return this.queue.build(merged, weights);
   }
@@ -76,10 +85,17 @@ export class DecisionEngine {
     eventType: DecisionLearningEventType,
     reason: string,
   ): Promise<DecisionItem | null> {
-    const updated = await this.repos.decisions.updateStatus(userId, decisionId, eventType);
+    const status = eventType === "accepted" ? "accepted" : eventType === "dismissed" ? "dismissed" : eventType;
+    const updated = await this.repos.decisions.updateStatus(userId, decisionId, status);
     if (!updated) return null;
+
     await this.learning.recordOutcome(userId, updated, eventType, reason);
+    await this.timeline.recordOutcome(userId, updated, eventType, reason);
     return updated;
+  }
+
+  async getTimeline(userId: string, limit = 30) {
+    return this.timeline.getTimeline(userId, limit);
   }
 }
 

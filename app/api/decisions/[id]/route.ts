@@ -41,7 +41,11 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     await writeAudit(
       userId,
-      parsed.data.action === "rejected" ? "rejection" : "approval",
+      parsed.data.action === "rejected" || parsed.data.action === "dismissed"
+        ? "rejection"
+        : parsed.data.action === "accepted" || parsed.data.action === "completed"
+          ? "approval"
+          : "data_access",
       "decisions",
       parsed.data.action,
       { decisionId: id },

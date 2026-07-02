@@ -5,7 +5,7 @@ export const interviewAnswerSchema = z.object({
 });
 
 export const decisionActionSchema = z.object({
-  action: z.enum(["completed", "ignored", "delayed", "rejected"]),
+  action: z.enum(["completed", "ignored", "delayed", "rejected", "accepted", "dismissed"]),
   reason: z.string().trim().max(500).optional(),
 });
 

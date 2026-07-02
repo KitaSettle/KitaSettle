@@ -7,8 +7,12 @@ import type {
   DecisionLearningEvent,
   DecisionLearningEventType,
   DecisionStatus,
+  DecisionTimelineEntry,
 } from "@/lib/types/decision-engine";
-import { DEFAULT_DECISION_WEIGHTS } from "@/lib/types/decision-engine";
+import {
+  createEmptyDecisionExplanation,
+  DEFAULT_DECISION_WEIGHTS,
+} from "@/lib/types/decision-engine";
 import { nowIso } from "@/lib/utils";
 
 export interface DecisionRepository {
@@ -23,6 +27,11 @@ export interface DecisionRepository {
     event: Omit<DecisionLearningEvent, "id" | "userId" | "createdAt">,
   ): Promise<void>;
   getLearningHistory(userId: string, limit?: number): Promise<DecisionLearningEvent[]>;
+  recordTimelineEntry(
+    userId: string,
+    entry: Omit<DecisionTimelineEntry, "id" | "userId" | "recordedAt">,
+  ): Promise<void>;
+  getTimeline(userId: string, limit?: number): Promise<DecisionTimelineEntry[]>;
 }
 
 function mapFactors(row: Record<string, unknown>) {
@@ -36,11 +45,27 @@ function mapFactors(row: Record<string, unknown>) {
     energyRequired: Number(row.energy_required ?? 0),
     financialEffect: Number(row.financial_effect ?? 0),
     strategicImportance: Number(row.strategic_importance ?? 0),
+    learningValue: Number(row.learning_value ?? 0),
+  };
+}
+
+function mapExplanationDetail(row: Record<string, unknown>) {
+  const detail = (row.explanation_detail ?? {}) as Record<string, unknown>;
+  if (!detail || Object.keys(detail).length === 0) {
+    return createEmptyDecisionExplanation();
+  }
+  return {
+    whyMatters: String(detail.whyMatters ?? ""),
+    whyNow: String(detail.whyNow ?? ""),
+    ifIgnored: String(detail.ifIgnored ?? ""),
+    expectedOutcome: String(detail.expectedOutcome ?? ""),
+    confidenceLevel: Number(detail.confidenceLevel ?? row.confidence ?? 0),
   };
 }
 
 function mapDecision(row: Record<string, unknown>): DecisionItem {
   const factors = mapFactors(row);
+  const explanationDetail = mapExplanationDetail(row);
   return {
     id: row.id as string,
     userId: row.user_id as string,
@@ -54,6 +79,7 @@ function mapDecision(row: Record<string, unknown>): DecisionItem {
     confidence: Number(row.confidence ?? factors.confidence),
     explanation: String(row.explanation ?? ""),
     because: (row.because ?? []) as string[],
+    explanationDetail,
     status: row.status as DecisionStatus,
     queuedFor: row.queued_for as string,
     metadata: (row.metadata ?? {}) as Record<string, unknown>,
@@ -105,9 +131,11 @@ export class SupabaseDecisionRepository implements DecisionRepository {
       energy_required: item.factors.energyRequired,
       financial_effect: item.factors.financialEffect,
       strategic_importance: item.factors.strategicImportance,
+      learning_value: item.factors.learningValue,
       score: item.score,
       explanation: item.explanation,
       because: item.because,
+      explanation_detail: item.explanationDetail,
       status: item.status,
       queued_for: item.queuedFor,
       metadata: item.metadata,
@@ -193,6 +221,50 @@ export class SupabaseDecisionRepository implements DecisionRepository {
       weightAdjustments: (row.weight_adjustments ?? {}) as Partial<DecisionFactorWeights>,
       reason: row.reason as string,
       createdAt: row.created_at as string,
+    }));
+  }
+
+  async recordTimelineEntry(
+    userId: string,
+    entry: Omit<DecisionTimelineEntry, "id" | "userId" | "recordedAt">,
+  ): Promise<void> {
+    const { error } = await this.client.from("decision_timeline_entries").insert({
+      user_id: userId,
+      decision_id: entry.decisionId,
+      title: entry.title,
+      action_label: entry.actionLabel,
+      why_made: entry.whyMade,
+      outcome: entry.outcome,
+      event_type: entry.eventType,
+      score: entry.score,
+      confidence: entry.confidence,
+      source: entry.source,
+    });
+    if (error) throw error;
+  }
+
+  async getTimeline(userId: string, limit = 30): Promise<DecisionTimelineEntry[]> {
+    const { data, error } = await this.client
+      .from("decision_timeline_entries")
+      .select("*")
+      .eq("user_id", userId)
+      .order("recorded_at", { ascending: false })
+      .limit(limit);
+    if (error) throw error;
+
+    return (data ?? []).map((row) => ({
+      id: row.id as string,
+      userId,
+      decisionId: (row.decision_id as string | null) ?? null,
+      title: row.title as string,
+      actionLabel: row.action_label as string,
+      whyMade: row.why_made as string,
+      outcome: (row.outcome as string | null) ?? null,
+      eventType: row.event_type as DecisionTimelineEntry["eventType"],
+      score: Number(row.score ?? 0),
+      confidence: Number(row.confidence ?? 0),
+      source: (row.source as DecisionInputSource | null) ?? null,
+      recordedAt: row.recorded_at as string,
     }));
   }
 }
