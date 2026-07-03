@@ -35,6 +35,9 @@ export default function SignUpPage() {
     const { data, error: signUpError } = await signUpWithEmail(email, password);
     if (signUpError) {
       setError(getSignUpErrorMessage(signUpError));
+      if (process.env.NODE_ENV === "development") {
+        console.error("[KitaSettle] Signup failed:", signUpError.message);
+      }
       setBusy(false);
       return;
     }

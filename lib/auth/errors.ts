@@ -126,7 +126,11 @@ export function getSignUpErrorMessage(error: AuthLikeError): string {
   }
 
   if (message.includes("database error saving new user")) {
-    return "We couldn't finish setting up your account. Please try again in a moment or contact support.";
+    return "We couldn't finish setting up your account after sign-up. Our team has been notified — please try again in a moment.";
+  }
+
+  if (message.includes("forbidden")) {
+    return "Account setup failed during sign-up. Please try again in a moment or contact support.";
   }
 
   if (message.includes("redirect") && message.includes("not allowed")) {
