@@ -11,7 +11,10 @@ export interface TrustedSource {
 }
 
 export interface TrustedSourceRepository {
-  list(): Promise<TrustedSource[]>;
+  /** Sources the user has explicitly added — never the global catalog. */
+  listForUser(userId: string): Promise<TrustedSource[]>;
+  /** Global catalog for browse/add flows. */
+  listCatalog(): Promise<TrustedSource[]>;
   getById(id: string): Promise<TrustedSource | null>;
 }
 
@@ -28,7 +31,12 @@ export function mapTrustedSourceRow(row: DbTrustedSource): TrustedSource {
 export class SupabaseTrustedSourceRepository implements TrustedSourceRepository {
   constructor(private client: SupabaseClient) {}
 
-  async list(): Promise<TrustedSource[]> {
+  async listForUser(_userId: string): Promise<TrustedSource[]> {
+    // Per-user subscriptions are added during onboarding or settings; new users start empty.
+    return [];
+  }
+
+  async listCatalog(): Promise<TrustedSource[]> {
     const { data, error } = await this.client
       .from("trusted_sources")
       .select("*")
@@ -53,7 +61,11 @@ export class SupabaseTrustedSourceRepository implements TrustedSourceRepository 
 }
 
 export class MockTrustedSourceRepository implements TrustedSourceRepository {
-  async list(): Promise<TrustedSource[]> {
+  async listForUser(_userId: string): Promise<TrustedSource[]> {
+    return [];
+  }
+
+  async listCatalog(): Promise<TrustedSource[]> {
     return STATIC_TRUSTED_SOURCES.map((source) => ({
       id: source.id,
       name: source.name,
@@ -64,7 +76,7 @@ export class MockTrustedSourceRepository implements TrustedSourceRepository {
   }
 
   async getById(id: string): Promise<TrustedSource | null> {
-    const sources = await this.list();
+    const sources = await this.listCatalog();
     return sources.find((source) => source.id === id) ?? null;
   }
 }

@@ -124,4 +124,5 @@ export interface ExecutiveBrainData {
   memory: ExecutiveMemoryItem[];
   skills: ExecutiveSkill[];
   activity: BrainActivityItem[];
+  isEmpty?: boolean;
 }

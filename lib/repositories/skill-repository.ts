@@ -35,7 +35,7 @@ export class SupabaseSkillRepository implements SkillRepository {
     const { data, error } = await this.client
       .from("skills")
       .select("*")
-      .or(`user_id.is.null,user_id.eq.${userId}`)
+      .eq("user_id", userId)
       .order("name", { ascending: true });
 
     if (error) throw error;
@@ -47,7 +47,7 @@ export class SupabaseSkillRepository implements SkillRepository {
       .from("skills")
       .select("*")
       .eq("id", id)
-      .or(`user_id.is.null,user_id.eq.${userId}`)
+      .eq("user_id", userId)
       .maybeSingle();
 
     if (error) throw error;

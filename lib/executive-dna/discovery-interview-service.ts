@@ -10,7 +10,7 @@ import {
 import { isOpenAIConfigured } from "@/lib/config/env";
 import { getOpenAIClient, getOpenAIModel } from "@/lib/ai/openai-client";
 import { prepareAiUserContent } from "@/lib/security/sanitize";
-import { createId, nowIso } from "@/lib/utils";
+import { createUuid, nowIso } from "@/lib/utils";
 
 const INTERVIEW_FIELD_ORDER: ExecutiveDNAFieldKey[] = [
   "profession",
@@ -115,7 +115,7 @@ export class DiscoveryInterviewService {
 
     if (!session) {
       session = {
-        id: createId("interview"),
+        id: createUuid(),
         userId,
         messages: [],
         overallConfidence: profile.overallConfidence,
@@ -158,7 +158,7 @@ export class DiscoveryInterviewService {
   async answer(userId: string, answer: string): Promise<DiscoveryInterviewResponse> {
     const profile = await this.repos.executiveDna.ensureProfile(userId);
     const session = (await this.repos.executiveDna.getInterviewSession(userId)) ?? {
-      id: createId("interview"),
+      id: createUuid(),
       userId,
       messages: [],
       overallConfidence: profile.overallConfidence,

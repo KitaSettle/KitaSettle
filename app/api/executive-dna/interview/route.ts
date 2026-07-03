@@ -23,6 +23,7 @@ export async function GET(request: Request) {
     await writeAudit(userId, "data_access", "executive_dna", "interview_start", {}, request);
     return NextResponse.json(response);
   } catch (error) {
+    console.error("[KitaSettle] Failed to start discovery interview:", error);
     const message =
       error instanceof Error ? error.message : "Failed to start discovery interview";
     return NextResponse.json({ error: message }, { status: 500 });

@@ -6,6 +6,7 @@ import { getSignOutErrorMessage, isAuthenticated, onAuthStateChange, signOut } f
 import { Button } from "@/components/ui/Button";
 import { KitaWorking } from "@/components/ui/KitaWorking";
 import { MobileNav } from "./MobileNav";
+import { OnboardingGate } from "./OnboardingGate";
 import { Sidebar } from "./Sidebar";
 
 interface AppShellProps {
@@ -78,7 +79,9 @@ export function AppShell({ children }: AppShellProps) {
               </Button>
             </header>
 
-            <main className="flex-1 px-5 py-8 sm:px-8 lg:px-12 lg:py-10">{children}</main>
+            <main className="flex-1 px-5 py-8 sm:px-8 lg:px-12 lg:py-10">
+              <OnboardingGate>{children}</OnboardingGate>
+            </main>
           </MobileNav>
         </div>
       </div>

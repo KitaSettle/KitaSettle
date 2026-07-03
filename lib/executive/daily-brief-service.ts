@@ -62,7 +62,7 @@ export async function generateIfMissing(
 
   const [research, trustedSources] = await Promise.all([
     repos.researchQueue.list(userId),
-    repos.trustedSources.list(),
+    repos.trustedSources.listForUser(userId),
   ]);
 
   const [status, personalization, recommendations, connect] = await Promise.all([

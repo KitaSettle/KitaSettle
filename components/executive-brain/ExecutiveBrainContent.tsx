@@ -229,7 +229,7 @@ export function ExecutiveBrainContent({ data }: ExecutiveBrainContentProps) {
         </p>
       </header>
 
-      <ExecutiveBrainOverview metrics={data.overview} />
+      <ExecutiveBrainOverview metrics={data.overview} isEmpty={data.isEmpty} />
 
       <Card className="mb-6 border-accent/10 bg-gradient-to-br from-surface to-accent/[0.03]">
         <label htmlFor="brain-search" className="block">
@@ -237,8 +237,9 @@ export function ExecutiveBrainContent({ data }: ExecutiveBrainContentProps) {
             Search Everything
           </span>
           <span className="mt-1 block text-sm text-muted">
-            Try RVSM, CBTA, ICAO, CAAM, Proposal, Steelworks, Leadership, or
-            Finance
+            {data.isEmpty
+              ? "Try Documents, Meetings, Projects, People, Goals, or Ideas"
+              : "Search across your knowledge, memory, and research"}
           </span>
         </label>
         <div className="relative mt-4">

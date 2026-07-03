@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, Suspense, useEffect, useRef, useState } from "react";
+import { FormEvent, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { DiscoveryInterviewResponse } from "@/lib/types/executive-dna";
 import {
@@ -12,11 +12,35 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { KitaWorking } from "@/components/ui/KitaWorking";
 
+const MAX_LOAD_ATTEMPTS = 4;
+
 async function ensureSchemaApplied(): Promise<void> {
   const probe = await fetch("/api/setup/apply-schema");
   const payload = (await probe.json().catch(() => null)) as { ready?: boolean } | null;
   if (payload?.ready) return;
   await fetch("/api/setup/apply-schema", { method: "POST" });
+}
+
+async function fetchInterviewWithRetry(): Promise<Response> {
+  let lastResponse: Response | null = null;
+
+  for (let attempt = 0; attempt < MAX_LOAD_ATTEMPTS; attempt += 1) {
+    if (attempt > 0) {
+      await new Promise((resolve) => setTimeout(resolve, 400 * attempt));
+    }
+
+    let response = await fetch("/api/executive-dna/interview");
+    if (response.status === 503) {
+      await fetch("/api/setup/apply-schema", { method: "POST" });
+      response = await fetch("/api/executive-dna/interview");
+    }
+
+    lastResponse = response;
+    if (response.ok) return response;
+    if (response.status === 401 || response.status === 403) return response;
+  }
+
+  return lastResponse ?? new Response(null, { status: 500 });
 }
 
 function DiscoveryInterviewContent() {
@@ -28,7 +52,14 @@ function DiscoveryInterviewContent() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const retryLoad = useCallback(() => {
+    setLoadError(null);
+    setData(null);
+    setReloadToken((current) => current + 1);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -36,15 +67,12 @@ function DiscoveryInterviewContent() {
     async function load() {
       try {
         await ensureSchemaApplied();
+        const response = await fetchInterviewWithRetry();
 
-        let response = await fetch("/api/executive-dna/interview");
-        if (response.status === 503) {
-          await fetch("/api/setup/apply-schema", { method: "POST" });
-          response = await fetch("/api/executive-dna/interview");
-        }
         if (!response.ok) {
           throw new Error(getDiscoveryLoadErrorMessage());
         }
+
         const payload = (await response.json()) as DiscoveryInterviewResponse;
         if (!cancelled) {
           setData(payload);
@@ -65,7 +93,7 @@ function DiscoveryInterviewContent() {
     return () => {
       cancelled = true;
     };
-  }, [allowUpdate, router]);
+  }, [allowUpdate, router, reloadToken]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -108,7 +136,7 @@ function DiscoveryInterviewContent() {
       <div className="mx-auto flex min-h-[50vh] max-w-lg flex-col items-center justify-center px-6 text-center">
         <h2 className="text-xl font-semibold text-foreground">Unable to continue</h2>
         <p className="mt-3 text-sm leading-relaxed text-muted">{loadError}</p>
-        <Button className="mt-6" onClick={() => window.location.reload()}>
+        <Button className="mt-6" onClick={retryLoad}>
           Try again
         </Button>
       </div>

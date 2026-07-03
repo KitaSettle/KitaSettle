@@ -1,4 +1,14 @@
 export const BRAIN_SEARCH_KEYWORDS = [
+  "Documents",
+  "Meetings",
+  "Projects",
+  "People",
+  "Goals",
+  "Ideas",
+] as const;
+
+/** @deprecated Demo keywords — do not use for new-user empty states. */
+export const DEMO_BRAIN_SEARCH_KEYWORDS = [
   "RVSM",
   "CBTA",
   "ICAO",

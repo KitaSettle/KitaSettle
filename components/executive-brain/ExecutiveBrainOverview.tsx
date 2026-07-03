@@ -4,12 +4,13 @@ import { Card } from "@/components/ui/Card";
 
 interface ExecutiveBrainOverviewProps {
   metrics: BrainOverviewMetrics;
+  isEmpty?: boolean;
 }
 
 const metricCards: {
   key: keyof BrainOverviewMetrics;
   label: string;
-  format: (metrics: BrainOverviewMetrics) => string;
+  format: (metrics: BrainOverviewMetrics, isEmpty?: boolean) => string;
   accent?: "default" | "success";
 }[] = [
   {
@@ -40,29 +41,38 @@ const metricCards: {
   {
     key: "brainHealth",
     label: "Brain Health",
-    format: (metrics) => `${metrics.brainHealth}%`,
+    format: (metrics, isEmpty) =>
+      isEmpty || metrics.brainHealth <= 0 ? "Getting Started" : `${metrics.brainHealth}%`,
     accent: "success",
   },
   {
     key: "estimatedTimeSavedHours",
     label: "Estimated Time Saved This Week",
-    format: (metrics) => `${metrics.estimatedTimeSavedHours} hours`,
+    format: (metrics, isEmpty) =>
+      isEmpty || metrics.estimatedTimeSavedHours <= 0
+        ? "—"
+        : `${metrics.estimatedTimeSavedHours} hours`,
   },
 ];
 
-export function ExecutiveBrainOverview({ metrics }: ExecutiveBrainOverviewProps) {
+export function ExecutiveBrainOverview({ metrics, isEmpty }: ExecutiveBrainOverviewProps) {
+  const brainHealthLabel =
+    isEmpty || metrics.brainHealth <= 0 ? "Getting Started" : `${metrics.brainHealth}% brain health`;
+
   return (
     <Card className="mb-6 border-accent/10 bg-gradient-to-br from-surface to-accent/[0.03] p-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">
-            Executive Brain Overview
-          </h2>
+          <h2 className="text-lg font-semibold text-foreground">Executive Brain Overview</h2>
           <p className="mt-1 text-sm text-muted">
-            Your knowledge engine at a glance
+            {isEmpty
+              ? "Your Executive Brain is ready — complete Discovery or upload your first document to begin learning."
+              : "Your knowledge engine at a glance"}
           </p>
         </div>
-        <Badge variant="success">{metrics.brainHealth}% brain health</Badge>
+        <Badge variant={isEmpty || metrics.brainHealth <= 0 ? "default" : "success"}>
+          {brainHealthLabel}
+        </Badge>
       </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -76,10 +86,12 @@ export function ExecutiveBrainOverview({ metrics }: ExecutiveBrainOverviewProps)
             </p>
             <p
               className={`mt-2 text-2xl font-semibold tracking-tight ${
-                metric.accent === "success" ? "text-success" : "text-foreground"
+                metric.accent === "success" && !isEmpty && metrics.brainHealth > 0
+                  ? "text-success"
+                  : "text-foreground"
               }`}
             >
-              {metric.format(metrics)}
+              {metric.format(metrics, isEmpty)}
             </p>
           </div>
         ))}
