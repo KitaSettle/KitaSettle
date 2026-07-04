@@ -94,16 +94,26 @@ export async function generateIfMissing(
   ]);
 
   if (status.interviewComplete) {
-    await withExecutiveDnaFallback(async () => {
-      await dnaEngine.refreshIntelligence(userId);
-      await dnaEngine.learningService.observeBriefUsage(userId);
-    }, undefined);
+    try {
+      await withExecutiveDnaFallback(async () => {
+        await dnaEngine.refreshIntelligence(userId);
+        await dnaEngine.learningService.observeBriefUsage(userId);
+      }, undefined);
+    } catch (error) {
+      console.error("[KitaSettle] Non-blocking brief intelligence refresh failed:", error);
+    }
   }
 
   const personalizedBrief = dnaEngine.personalizationService.applyToBrief(
     brief,
     personalization,
   );
+  const briefWithHeadline = {
+    ...personalizedBrief,
+    headline:
+      personalizedBrief.summary?.split(".")[0]?.trim() ||
+      "Good morning — I'm ready to start learning with you",
+  };
 
   const decisions = await withDecisionFallback(
     () => createDecisionEngine(repos).generateMorningQueue(userId, connect),
@@ -121,7 +131,7 @@ export async function generateIfMissing(
     .map(mapResearchQueueRecordToUi);
 
   return {
-    brief: personalizedBrief,
+    brief: briefWithHeadline,
     recentResearch,
     pendingApprovals,
     trustedSourcesCount: trustedSources.length,

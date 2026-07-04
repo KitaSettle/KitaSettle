@@ -37,8 +37,10 @@ export class ExecutivePersonalizationService {
     const emphasis = new Set(hints.emphasisAreas.map((item) => item.toLowerCase()));
 
     const prioritized = [...brief.priorities].sort((a, b) => {
-      const aScore = emphasis.has(a.title.toLowerCase()) ? 1 : 0;
-      const bScore = emphasis.has(b.title.toLowerCase()) ? 1 : 0;
+      const aTitle = a.title?.toLowerCase() ?? "";
+      const bTitle = b.title?.toLowerCase() ?? "";
+      const aScore = emphasis.has(aTitle) ? 1 : 0;
+      const bScore = emphasis.has(bTitle) ? 1 : 0;
       return bScore - aScore;
     });
 

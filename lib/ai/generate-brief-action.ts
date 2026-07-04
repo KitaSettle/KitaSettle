@@ -62,7 +62,7 @@ export class GenerateBriefAction {
       tasks: [],
     });
 
-    const historyStore = await createExecutiveBriefHistoryStore(this.userId);
+    const historyStore = await createExecutiveBriefHistoryStore(this.userId, this.repos);
     await historyStore.saveBrief(aiBrief);
 
     return mapAIBriefToExecutiveBriefOutput(aiBrief);

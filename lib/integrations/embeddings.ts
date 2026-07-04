@@ -33,12 +33,17 @@ export async function generateDocumentSummary(name: string, mimeType?: string | 
 export async function generateEmbedding(text: string): Promise<number[] | null> {
   if (!isOpenAIConfigured()) return null;
 
-  const client = getOpenAIClient();
-  const { content } = prepareAiUserContent("embedding", text);
-  const response = await client.embeddings.create({
-    model: "text-embedding-3-small",
-    input: content.slice(0, 8000),
-  });
+  try {
+    const client = getOpenAIClient();
+    const { content } = prepareAiUserContent("embedding", text);
+    const response = await client.embeddings.create({
+      model: "text-embedding-3-small",
+      input: content.slice(0, 8000),
+    });
 
-  return response.data[0]?.embedding ?? null;
+    return response.data[0]?.embedding ?? null;
+  } catch (error) {
+    console.error("[KitaSettle] Embedding generation failed, continuing without vector:", error);
+    return null;
+  }
 }

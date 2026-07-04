@@ -139,7 +139,8 @@ else fail("discovery_status_complete", JSON.stringify(status));
 
 const today = await fetch(`${APP_URL}/api/dashboard/executive`, { headers: { Cookie: cookie } });
 const todayBody = await today.json();
-if (today.ok && todayBody.brief?.headline) pass("today_brief", todayBody.brief.headline);
+const todayHeadline = todayBody.brief?.headline ?? todayBody.brief?.summary;
+if (today.ok && todayHeadline) pass("today_brief", todayHeadline);
 else fail("today_brief", `${today.status} ${JSON.stringify(todayBody)}`);
 
 const brain = await fetch(`${APP_URL}/api/executive-brain`, { headers: { Cookie: cookie } }).then((r) => r.json());

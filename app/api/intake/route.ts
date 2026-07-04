@@ -93,7 +93,10 @@ export async function POST(request: Request) {
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
     if (error instanceof AiBudgetExceededError) {
-      return NextResponse.json({ error: error.message }, { status: 429 });
+      return NextResponse.json(
+        { error: "Kita is at capacity right now. Your note was saved — try again in a few minutes." },
+        { status: 429 },
+      );
     }
 
     await recordOperationalError({
@@ -103,11 +106,9 @@ export async function POST(request: Request) {
       retryable: true,
     });
 
-    const raw = error instanceof Error ? error.message : undefined;
-    const message =
-      raw && !raw.toLowerCase().includes("stack")
-        ? raw
-        : "Kita couldn't process that just now. Please try again.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: "Kita couldn't process that just now. Please try again." },
+      { status: 500 },
+    );
   }
 }

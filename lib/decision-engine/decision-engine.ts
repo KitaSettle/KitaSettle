@@ -71,11 +71,16 @@ export class DecisionEngine {
 
     await this.repos.decisions.upsertDecisions(userId, explained);
 
+    const merged = await this.repos.decisions.listForDate(userId, today);
+    const mergedByKey = new Map(merged.map((item) => [item.externalKey, item]));
+
     for (const item of explained.slice(0, 3)) {
-      await this.timeline.recordQueued(userId, item);
+      const persisted = mergedByKey.get(item.externalKey);
+      if (persisted) {
+        await this.timeline.recordQueued(userId, persisted);
+      }
     }
 
-    const merged = await this.repos.decisions.listForDate(userId, today);
     return this.queue.build(merged, weights);
   }
 

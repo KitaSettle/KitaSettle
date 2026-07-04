@@ -11,6 +11,7 @@ export interface StoredExecutiveBrief extends ExecutiveBrief {
   id: string;
   createdAt: string;
   updatedAt: string;
+  headline?: string;
 }
 
 export interface DailyExecutiveBriefPayload {

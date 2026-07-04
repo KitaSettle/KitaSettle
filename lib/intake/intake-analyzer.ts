@@ -158,11 +158,8 @@ export async function analyzeIntakeContent(
       retryable: true,
     });
 
-    if (!isOpenAIConfigured()) {
-      return buildMockAnalysis(content, dna);
-    }
-
-    throw error;
+    console.error("[KitaSettle] Intake AI analysis failed, using local fallback:", error);
+    return buildMockAnalysis(content, dna);
   }
 }
 
