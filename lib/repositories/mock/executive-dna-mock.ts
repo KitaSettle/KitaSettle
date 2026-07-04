@@ -235,4 +235,16 @@ export class MockExecutiveDNARepository implements ExecutiveDNARepository {
     this.sessions.set(session.userId, saved);
     return clone(saved);
   }
+
+  async markInterviewComplete(userId: string): Promise<ExecutiveDNAProfile> {
+    const profile = await this.ensureProfile(userId);
+    const updated = {
+      ...profile,
+      interviewComplete: true,
+      version: profile.interviewComplete ? profile.version : profile.version + 1,
+      updatedAt: nowIso(),
+    };
+    this.profiles.set(userId, updated);
+    return clone(updated);
+  }
 }

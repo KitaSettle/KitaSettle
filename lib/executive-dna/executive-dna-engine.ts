@@ -31,7 +31,7 @@ export class ExecutiveDNAEngine {
     return {
       overallConfidence: profile.overallConfidence,
       interviewComplete: profile.interviewComplete,
-      needsDiscovery: profile.overallConfidence < DISCOVERY_CONFIDENCE_TARGET,
+      needsDiscovery: !profile.interviewComplete,
       version: profile.version,
     };
   }

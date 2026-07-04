@@ -51,6 +51,7 @@ export interface ExecutiveDNARepository {
   dismissRecommendation(userId: string, id: string): Promise<void>;
   getInterviewSession(userId: string): Promise<DiscoveryInterviewSession | null>;
   saveInterviewSession(session: DiscoveryInterviewSession): Promise<DiscoveryInterviewSession>;
+  markInterviewComplete(userId: string): Promise<ExecutiveDNAProfile>;
 }
 
 function parseProfile(value: unknown): ExecutiveDNAProfileData {
@@ -493,6 +494,29 @@ export class SupabaseExecutiveDNARepository implements ExecutiveDNARepository {
       overallConfidence: Number(data.overall_confidence),
       isComplete: Boolean(data.is_complete),
       updatedAt: data.updated_at as string,
+    };
+  }
+
+  async markInterviewComplete(userId: string): Promise<ExecutiveDNAProfile> {
+    const current = await this.ensureProfile(userId);
+    const nextVersion = current.interviewComplete ? current.version : current.version + 1;
+
+    const { error } = await this.client
+      .from("executive_dna_profiles")
+      .update({
+        interview_complete: true,
+        version: nextVersion,
+        updated_at: nowIso(),
+      })
+      .eq("user_id", userId);
+
+    if (error) throw error;
+
+    return {
+      ...current,
+      interviewComplete: true,
+      version: nextVersion,
+      updatedAt: nowIso(),
     };
   }
 }

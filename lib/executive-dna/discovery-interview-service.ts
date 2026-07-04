@@ -212,7 +212,7 @@ export class DiscoveryInterviewService {
     });
 
     const parsed = await this.extractFieldValue(targetField, trimmedAnswer);
-    const updatedProfile = await this.repos.executiveDna.updateProfileField(
+    let updatedProfile = await this.repos.executiveDna.updateProfileField(
       userId,
       targetField,
       parsed.value,
@@ -222,6 +222,9 @@ export class DiscoveryInterviewService {
     );
 
     const complete = isInterviewComplete(updatedProfile);
+    if (complete && !updatedProfile.interviewComplete) {
+      updatedProfile = await this.repos.executiveDna.markInterviewComplete(userId);
+    }
     let nextQuestion: string | null = null;
     const messages = [...messagesWithUser];
 
