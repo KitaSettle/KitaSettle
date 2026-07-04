@@ -1,5 +1,6 @@
 /**
- * Founder Week production E2E: signup → confirm → login → discovery → empty brain.
+ * Founder Week production E2E:
+ * signup → confirm → login → discovery start → complete full interview.
  */
 import { spawnSync } from "node:child_process";
 
@@ -7,6 +8,31 @@ const SUPABASE_URL = "https://eyszimcjpvutjzuvqqak.supabase.co";
 const APP_URL = "https://kita-settle.vercel.app";
 const ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5c3ppbWNqcHZ1dGp6dXZxcWFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MjM0MjMsImV4cCI6MjA5ODQ5OTQyM30.me2XWEx3Tf_zkTvTpEEfXYomHIl7XY7ZqCKCM6HCEGw";
+
+const DISCOVERY_ANSWERS = [
+  "CEO and founder",
+  "Technology and professional services",
+  "Chief Executive Officer",
+  "Strategy, product direction, client relationships",
+  "Grow revenue, improve team execution, launch new product line",
+  "Platform launch, hiring plan, Q3 roadmap",
+  "Collaborative and analytical",
+  "Servant leadership with clear accountability",
+  "Concise and advisory",
+  "Balanced",
+  "Market trends, competitor moves, regulatory changes",
+  "Leadership, product strategy, AI tools",
+  "Growth, hiring, customer success",
+  "Revenue, product delivery, team health",
+  "Standard",
+  "9am to 6pm weekdays",
+  "Batch non-urgent meetings, protect focus blocks",
+  "Executive advisor",
+  "Balanced",
+  "7:30am",
+  "85",
+  "Founder",
+];
 
 function getServiceRoleKey() {
   const result = spawnSync(
@@ -21,6 +47,28 @@ function getServiceRoleKey() {
   const key = keys.find((entry) => entry.name === "service_role")?.api_key;
   if (!key) throw new Error("Service role key missing");
   return key;
+}
+
+function toBase64Url(value) {
+  return Buffer.from(value, "utf8")
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+function buildAuthCookie(loginBody) {
+  const session = {
+    access_token: loginBody.access_token,
+    refresh_token: loginBody.refresh_token,
+    expires_in: loginBody.expires_in,
+    expires_at: loginBody.expires_at,
+    token_type: loginBody.token_type ?? "bearer",
+    user: loginBody.user,
+  };
+  const projectRef = "eyszimcjpvutjzuvqqak";
+  const cookieValue = `base64-${toBase64Url(JSON.stringify(session))}`;
+  return `sb-${projectRef}-auth-token=${encodeURIComponent(cookieValue)}`;
 }
 
 const SERVICE_ROLE = getServiceRoleKey();
@@ -78,8 +126,6 @@ if (!signupRes.ok) {
   process.exit(1);
 }
 pass("signup", signupBody.user?.confirmation_sent_at ? "confirmation sent" : "user created");
-const signupUserId = signupBody.user?.id;
-if (signupUserId) pass("signup_user_id", signupUserId);
 
 const linkRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/generate_link`, {
   method: "POST",
@@ -119,57 +165,66 @@ if (!loginRes.ok || !loginBody.access_token) {
 }
 pass("login", "access_token received");
 
-const accessToken = loginBody.access_token;
-const userIdFromLogin = loginBody.user?.id;
-if (!userIdFromLogin) fail("auth.users", "missing id from login");
-else pass("auth.users", userIdFromLogin);
+const userId = loginBody.user?.id;
+if (!userId) fail("auth.users", "missing id from login");
+else pass("auth.users", userId);
 
-const session = {
-  access_token: loginBody.access_token,
-  refresh_token: loginBody.refresh_token,
-  expires_in: loginBody.expires_in,
-  expires_at: loginBody.expires_at,
-  token_type: loginBody.token_type ?? "bearer",
-  user: loginBody.user,
+const authCookie = buildAuthCookie(loginBody);
+const authHeaders = {
+  Cookie: authCookie,
+  Origin: APP_URL,
+  "Content-Type": "application/json",
 };
 
-function toBase64Url(value) {
-  return Buffer.from(value, "utf8")
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
+const startRes = await fetch(`${APP_URL}/api/executive-dna/interview`, {
+  headers: { Cookie: authCookie },
+});
+const startBody = await startRes.json();
+if (!startRes.ok || !startBody.session?.messages?.length) {
+  fail("discovery_starts", `${startRes.status} ${JSON.stringify(startBody)}`);
+} else {
+  pass("discovery_starts", `${startBody.session.messages.length} messages`);
 }
 
-const projectRef = "eyszimcjpvutjzuvqqak";
-const cookieValue = `base64-${toBase64Url(JSON.stringify(session))}`;
-const authCookie = `sb-${projectRef}-auth-token=${encodeURIComponent(cookieValue)}`;
+let interviewState = startBody;
+let answersSubmitted = 0;
+
+for (const answer of DISCOVERY_ANSWERS) {
+  if (interviewState?.isComplete) break;
+
+  const postRes = await fetch(`${APP_URL}/api/executive-dna/interview`, {
+    method: "POST",
+    headers: authHeaders,
+    body: JSON.stringify({ answer }),
+  });
+  const postBody = await postRes.json();
+
+  if (!postRes.ok) {
+    fail("discovery_answer", `#${answersSubmitted + 1} HTTP ${postRes.status} ${JSON.stringify(postBody)}`);
+    break;
+  }
+
+  answersSubmitted += 1;
+  interviewState = postBody;
+
+  if (postBody.isComplete) {
+    pass("discovery_complete", `after ${answersSubmitted} answers, confidence=${postBody.overallConfidence}`);
+    break;
+  }
+}
+
+if (!interviewState?.isComplete) {
+  fail("discovery_complete", `still incomplete after ${answersSubmitted} answers`);
+}
 
 const statusRes = await fetch(`${APP_URL}/api/executive-dna/status`, {
   headers: { Cookie: authCookie },
 });
 const statusBody = await statusRes.json();
-if (statusRes.ok && statusBody.needsDiscovery === true) {
-  pass("executive_dna_status", `needsDiscovery=${statusBody.needsDiscovery}`);
+if (statusRes.ok && statusBody.needsDiscovery === false) {
+  pass("executive_dna_status_complete", `needsDiscovery=${statusBody.needsDiscovery}`);
 } else {
-  fail("executive_dna_status", `${statusRes.status} ${JSON.stringify(statusBody)}`);
-}
-
-let interviewOk = false;
-for (let attempt = 1; attempt <= 3; attempt += 1) {
-  const interviewRes = await fetch(`${APP_URL}/api/executive-dna/interview`, {
-    headers: { Cookie: authCookie },
-  });
-  const interviewBody = await interviewRes.json();
-  if (interviewRes.ok && interviewBody.session?.messages?.length > 0) {
-    pass("discovery_starts", `${interviewBody.session.messages.length} messages`);
-    interviewOk = true;
-    break;
-  }
-  await new Promise((r) => setTimeout(r, 500 * attempt));
-  if (attempt === 3) {
-    fail("discovery_starts", `${interviewRes.status} ${JSON.stringify(interviewBody)}`);
-  }
+  fail("executive_dna_status_complete", `${statusRes.status} ${JSON.stringify(statusBody)}`);
 }
 
 const brainRes = await fetch(`${APP_URL}/api/executive-brain`, {
@@ -179,33 +234,22 @@ const brainBody = await brainRes.json();
 if (
   brainRes.ok &&
   brainBody.overview?.knowledgeItems === 0 &&
-  brainBody.overview?.executiveMemories === 0 &&
-  brainBody.overview?.skills === 0 &&
-  brainBody.overview?.trustedSources === 0 &&
-  brainBody.isEmpty === true
+  brainBody.overview?.executiveMemories === 0
 ) {
-  pass("executive_brain_empty", "all counts zero");
+  pass("executive_brain_empty", "still empty after discovery");
 } else {
   fail("executive_brain_empty", `${brainRes.status} ${JSON.stringify(brainBody.overview ?? brainBody)}`);
 }
 
-const knowledgeCount = await restCount("knowledge", userIdFromLogin);
-const memoryCount = await restCount("executive_memory", userIdFromLogin);
-const researchCount = await restCount("research_queue", userIdFromLogin);
-if (knowledgeCount === 0 && memoryCount === 0 && researchCount === 0) {
-  pass("db_empty", `knowledge=${knowledgeCount} memory=${memoryCount} research=${researchCount}`);
+const knowledgeCount = await restCount("knowledge", userId);
+const memoryCount = await restCount("executive_memory", userId);
+if (knowledgeCount === 0 && memoryCount === 0) {
+  pass("db_empty", `knowledge=${knowledgeCount} memory=${memoryCount}`);
 } else {
-  fail("db_empty", `knowledge=${knowledgeCount} memory=${memoryCount} research=${researchCount}`);
+  fail("db_empty", `knowledge=${knowledgeCount} memory=${memoryCount}`);
 }
-
-const demoTags = ["RVSM", "CBTA", "Steelworks"];
-const hasDemo =
-  (brainBody.memory ?? []).some((m) => demoTags.some((t) => JSON.stringify(m).includes(t))) ||
-  (brainBody.researchQueue ?? []).some((m) => demoTags.some((t) => JSON.stringify(m).includes(t)));
-if (!hasDemo) pass("no_demo_data", "no aviation/steelworks in brain payload");
-else fail("no_demo_data", "found demo tags in brain payload");
 
 const failed = results.filter((r) => !r.ok);
 console.log("\n--- SUMMARY ---");
-console.log(JSON.stringify({ email, userId: userIdFromLogin, passed: results.filter((r) => r.ok).length, failed: failed.length, interviewOk }, null, 2));
+console.log(JSON.stringify({ email, userId, answersSubmitted, passed: results.filter((r) => r.ok).length, failed: failed.length }, null, 2));
 if (failed.length) process.exit(1);

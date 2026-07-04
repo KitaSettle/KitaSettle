@@ -5,14 +5,16 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { DiscoveryInterviewResponse } from "@/lib/types/executive-dna";
 import {
   getDiscoveryLoadErrorMessage,
-  getDiscoverySubmitErrorMessage,
+  resolveDiscoverySubmitError,
 } from "@/lib/copy/user-errors";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { KitaWorking } from "@/components/ui/KitaWorking";
+import { nowIso } from "@/lib/utils";
 
 const MAX_LOAD_ATTEMPTS = 4;
+const MAX_SUBMIT_ATTEMPTS = 3;
 
 async function ensureSchemaApplied(): Promise<void> {
   const probe = await fetch("/api/setup/apply-schema");
@@ -41,6 +43,42 @@ async function fetchInterviewWithRetry(): Promise<Response> {
   }
 
   return lastResponse ?? new Response(null, { status: 500 });
+}
+
+async function submitAnswerWithRetry(
+  answer: string,
+): Promise<{ response: Response; payload: DiscoveryInterviewResponse | { error?: string } | null }> {
+  let lastResponse: Response | null = null;
+  let lastPayload: DiscoveryInterviewResponse | { error?: string } | null = null;
+
+  for (let attempt = 0; attempt < MAX_SUBMIT_ATTEMPTS; attempt += 1) {
+    if (attempt > 0) {
+      await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
+    }
+
+    const response = await fetch("/api/executive-dna/interview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ answer }),
+    });
+    const payload = (await response.json().catch(() => null)) as
+      | DiscoveryInterviewResponse
+      | { error?: string }
+      | null;
+
+    lastResponse = response;
+    lastPayload = payload;
+
+    if (response.ok) {
+      return { response, payload: payload as DiscoveryInterviewResponse };
+    }
+
+    if (response.status === 401 || response.status === 403) {
+      break;
+    }
+  }
+
+  return { response: lastResponse ?? new Response(null, { status: 500 }), payload: lastPayload };
 }
 
 function DiscoveryInterviewContent() {
@@ -101,31 +139,72 @@ function DiscoveryInterviewContent() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!answer.trim() || busy) return;
+    const trimmedAnswer = answer.trim();
+    if (!trimmedAnswer || busy || !data) return;
 
     setBusy(true);
     setError(null);
 
-    try {
-      const response = await fetch("/api/executive-dna/interview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answer }),
-      });
+    const optimisticMessages = [
+      ...data.session.messages,
+      { role: "user" as const, content: trimmedAnswer, timestamp: nowIso() },
+    ];
+    setData({
+      ...data,
+      session: {
+        ...data.session,
+        messages: optimisticMessages,
+      },
+    });
 
-      if (!response.ok) {
-        throw new Error(getDiscoverySubmitErrorMessage());
+    try {
+      const { response, payload } = await submitAnswerWithRetry(trimmedAnswer);
+
+      if (!response.ok || !payload || !("session" in payload)) {
+        setData((current) =>
+          current
+            ? {
+                ...current,
+                session: {
+                  ...current.session,
+                  messages: current.session.messages.filter(
+                    (message) =>
+                      !(
+                        message.role === "user" &&
+                        message.content === trimmedAnswer &&
+                        message.timestamp === optimisticMessages.at(-1)?.timestamp
+                      ),
+                  ),
+                },
+              }
+            : current,
+        );
+        throw new Error(
+          resolveDiscoverySubmitError(response, payload as { error?: string } | null),
+        );
       }
 
-      const payload = (await response.json()) as DiscoveryInterviewResponse;
       setData(payload);
       setAnswer("");
 
       if (payload.isComplete && !allowUpdate) {
         router.replace("/dashboard/executive");
       }
-    } catch {
-      setError(getDiscoverySubmitErrorMessage());
+    } catch (submitErr) {
+      try {
+        const reload = await fetchInterviewWithRetry();
+        if (reload.ok) {
+          const reloaded = (await reload.json()) as DiscoveryInterviewResponse;
+          setData(reloaded);
+        }
+      } catch {
+        // keep optimistic rollback above if reload fails
+      }
+      setError(
+        submitErr instanceof Error
+          ? submitErr.message
+          : resolveDiscoverySubmitError(new Response(null, { status: 500 }), null),
+      );
     } finally {
       setBusy(false);
     }

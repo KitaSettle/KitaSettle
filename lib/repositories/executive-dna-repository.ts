@@ -173,13 +173,16 @@ export class SupabaseExecutiveDNARepository implements ExecutiveDNARepository {
       [fieldKey]: value,
     } as ExecutiveDNAProfileData;
 
-    await this.client.from("executive_dna_field_confidence").upsert({
-      user_id: userId,
-      field_key: fieldKey,
-      confidence: mergedConfidence,
-      value,
-      updated_at: nowIso(),
-    });
+    await this.client.from("executive_dna_field_confidence").upsert(
+      {
+        user_id: userId,
+        field_key: fieldKey,
+        confidence: mergedConfidence,
+        value,
+        updated_at: nowIso(),
+      },
+      { onConflict: "user_id,field_key" },
+    );
 
     const nextFieldConfidence = EXECUTIVE_DNA_FIELDS.map((key) => {
       const existing = current.fieldConfidence.find((field) => field.fieldKey === key);

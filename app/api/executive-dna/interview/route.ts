@@ -23,7 +23,10 @@ export async function GET(request: Request) {
     await writeAudit(userId, "data_access", "executive_dna", "interview_start", {}, request);
     return NextResponse.json(response);
   } catch (error) {
-    console.error("[KitaSettle] Failed to start discovery interview:", error);
+    console.error("[KitaSettle] Failed to start discovery interview:", {
+      userId: readyUserId,
+      error,
+    });
     const message =
       error instanceof Error ? error.message : "Failed to start discovery interview";
     return NextResponse.json({ error: message }, { status: 500 });
@@ -40,12 +43,20 @@ export async function POST(request: Request) {
   let body: unknown;
   try {
     body = await request.json();
-  } catch {
+  } catch (error) {
+    console.error("[KitaSettle] Discovery interview invalid JSON:", { userId: readyUserId, error });
     return jsonError("Invalid JSON body");
   }
 
   const parsed = parseJsonBody(interviewAnswerSchema, body);
-  if (!parsed.success) return jsonError(parsed.error);
+  if (!parsed.success) {
+    console.error("[KitaSettle] Discovery interview validation failed:", {
+      userId: readyUserId,
+      error: parsed.error,
+      body,
+    });
+    return jsonError(parsed.error);
+  }
 
   try {
     const repos = await getServerRepositories();
@@ -54,6 +65,11 @@ export async function POST(request: Request) {
     await writeAudit(userId, "ai_generation", "executive_dna", "interview_answer", {}, request);
     return NextResponse.json(response);
   } catch (error) {
+    console.error("[KitaSettle] Failed to process discovery answer:", {
+      userId: readyUserId,
+      answerLength: parsed.data.answer.length,
+      error,
+    });
     const message =
       error instanceof Error ? error.message : "Failed to process discovery answer";
     return NextResponse.json({ error: message }, { status: 500 });
