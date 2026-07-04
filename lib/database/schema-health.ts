@@ -21,6 +21,7 @@ const REQUIRED_TABLES = [
   "executive_briefs",
   "knowledge",
   "executive_memory",
+  "kita_chat_messages",
 ] as const;
 
 function isMissingTableError(payload: unknown): boolean {

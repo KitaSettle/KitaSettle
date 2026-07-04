@@ -56,7 +56,7 @@ function nextMissingField(profile: ExecutiveDNAProfile): ExecutiveDNAFieldKey | 
 
 function mockQuestionForField(field: ExecutiveDNAFieldKey): string {
   const prompts: Record<ExecutiveDNAFieldKey, string> = {
-    profession: "What is your profession? For example: Pilot, CEO, Lawyer, Engineer.",
+    profession: "Hi, I'm Kita. Let's start with something simple — what do you do?",
     industry: "Which industry do you operate in most often?",
     role: "What is your current role or title?",
     responsibilities: "What are your top three responsibilities right now?",
@@ -148,7 +148,7 @@ export class DiscoveryInterviewService {
     const nextField = nextMissingField(profile);
     const opening =
       session.messages.length === 0
-        ? "Welcome. I'll learn how you work so Kita can prepare briefs that feel personal to you."
+        ? "Hi, I'm Kita. I'll learn how you work so I can prepare better briefings for you."
         : null;
     const nextQuestion = nextField ? mockQuestionForField(nextField) : null;
 

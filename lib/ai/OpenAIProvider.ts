@@ -16,6 +16,7 @@ import type {
 import type { BriefOpportunity, BriefPriority, BriefRisk } from "@/lib/types/executive";
 import { createId, nowIso } from "@/lib/utils";
 import { prepareAiUserContent, sanitizeStructuredPayload } from "@/lib/security/sanitize";
+import { createHardenedChatCompletion } from "./hardened-chat";
 import { getOpenAIClient, getOpenAIModel } from "./openai-client";
 
 function truncate(text: string, maxLength: number): string {
@@ -190,55 +191,98 @@ export class OpenAIProvider implements AIProvider {
   async generateExecutiveBrief(
     input: AIExecutiveBriefInput,
   ): Promise<AIExecutiveBriefOutput> {
-    const content = await createChatCompletion(
-      [
-        "You are KitaSettle's executive intelligence assistant.",
-        "Generate a daily executive brief for a founder balancing aviation training, proposals, and strategic decisions.",
-        "Return JSON only with keys:",
+    const hasContext =
+      input.knowledge.length > 0 ||
+      input.memory.length > 0 ||
+      input.research.length > 0 ||
+      input.calendar.length > 0;
+
+    const fallbackSummary = hasContext
+      ? "Here's what stands out from what you've shared so far. I'll keep refining this as you give me more."
+      : "Good morning. I'm ready to start learning. Give something to Kita or tell me what matters today.";
+
+    const { content, usedFallback } = await createHardenedChatCompletion({
+      source: "executive-brief",
+      json: true,
+      systemPrompt: [
+        "You are Kita, an executive companion inside KitaSettle.",
+        "Generate a honest daily executive brief using ONLY the supplied context.",
+        "Never invent meetings, deadlines, expertise, or time saved.",
+        "Return JSON with keys:",
         "headline, executiveSummary, topPriorities (array of {id, title, description}),",
         "risks (array of {id, title}), opportunities (array of {id, title}),",
         "recommendedActions (string array), estimatedReadingSaved (string), confidence (0-100 number).",
       ].join(" "),
-      buildBriefContext(input),
-      "executive-brief",
-      true,
-    );
+      userPrompt: buildBriefContext(input),
+      fallback: JSON.stringify({
+        headline: hasContext ? "Your focus for today" : "Good morning — I'm ready to start learning",
+        executiveSummary: fallbackSummary,
+        topPriorities: [],
+        risks: [],
+        opportunities: [],
+        recommendedActions: hasContext
+          ? ["Review what you've shared with Kita"]
+          : ["Give something to Kita", "Talk to Kita about your priorities"],
+        estimatedReadingSaved: "—",
+        confidence: hasContext ? 55 : 40,
+      }),
+    });
 
-    const parsed = parseJson<{
-      headline: string;
-      executiveSummary: string;
-      topPriorities: BriefPriority[];
-      risks: BriefRisk[];
-      opportunities: BriefOpportunity[];
-      recommendedActions: string[];
-      estimatedReadingSaved: string;
-      confidence: number;
-    }>(content);
+    try {
+      const parsed = parseJson<{
+        headline: string;
+        executiveSummary: string;
+        topPriorities: BriefPriority[];
+        risks: BriefRisk[];
+        opportunities: BriefOpportunity[];
+        recommendedActions: string[];
+        estimatedReadingSaved: string;
+        confidence: number;
+      }>(content);
 
-    return {
-      id: createId("brief"),
-      headline: parsed.headline,
-      executiveSummary: parsed.executiveSummary,
-      topPriorities: (parsed.topPriorities ?? []).slice(0, 5).map((priority, index) => ({
-        id: priority.id ?? createId(`p-${index}`),
-        title: priority.title,
-        description: priority.description,
-      })),
-      risks: (parsed.risks ?? []).slice(0, 4).map((risk, index) => ({
-        id: risk.id ?? createId(`r-${index}`),
-        title: risk.title,
-      })),
-      opportunities: (parsed.opportunities ?? []).slice(0, 4).map((item, index) => ({
-        id: item.id ?? createId(`o-${index}`),
-        title: item.title,
-      })),
-      recommendedActions: parsed.recommendedActions ?? [],
-      estimatedReadingSaved: parsed.estimatedReadingSaved ?? "10 minutes",
-      confidence: Math.max(0, Math.min(100, Math.round(parsed.confidence ?? 85))),
-      topicsUsed: collectTopics(input),
-      generatedAt: nowIso(),
-      mock: false,
-    };
+      return {
+        id: createId("brief"),
+        headline: parsed.headline,
+        executiveSummary: parsed.executiveSummary,
+        topPriorities: (parsed.topPriorities ?? []).slice(0, 5).map((priority, index) => ({
+          id: priority.id ?? createId(`p-${index}`),
+          title: priority.title,
+          description: priority.description,
+        })),
+        risks: (parsed.risks ?? []).slice(0, 4).map((risk, index) => ({
+          id: risk.id ?? createId(`r-${index}`),
+          title: risk.title,
+        })),
+        opportunities: (parsed.opportunities ?? []).slice(0, 4).map((item, index) => ({
+          id: item.id ?? createId(`o-${index}`),
+          title: item.title,
+        })),
+        recommendedActions: parsed.recommendedActions ?? [],
+        estimatedReadingSaved: parsed.estimatedReadingSaved ?? "—",
+        confidence: Math.max(0, Math.min(100, Math.round(parsed.confidence ?? 50))),
+        topicsUsed: collectTopics(input),
+        generatedAt: nowIso(),
+        mock: usedFallback,
+      };
+    } catch (error) {
+      console.error("[KitaSettle] Executive brief JSON parse failed:", error);
+      return {
+        id: createId("brief"),
+        headline: hasContext ? "Your focus for today" : "Good morning — I'm ready to start learning",
+        executiveSummary: fallbackSummary,
+        topPriorities: [],
+        risks: [],
+        opportunities: [],
+        recommendedActions: hasContext
+          ? ["Review what you've shared with Kita"]
+          : ["Give something to Kita", "Talk to Kita about your priorities"],
+        estimatedReadingSaved: "—",
+        confidence: hasContext ? 55 : 40,
+        topicsUsed: collectTopics(input),
+        generatedAt: nowIso(),
+        mock: true,
+      };
+    }
   }
 }
 

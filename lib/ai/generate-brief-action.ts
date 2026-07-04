@@ -2,7 +2,6 @@ import type { BrainServices } from "@/lib/types/brain";
 import type { Repositories } from "@/lib/repositories";
 import type { CalendarEvent, ExecutiveBriefOutput } from "@/lib/types/executive";
 import type { AIExecutiveBriefOutput } from "./types";
-import { mockExecutiveTasks } from "@/lib/executive/mock-executive-inputs";
 import { createExecutiveBriefHistoryStore } from "./brief-history-store";
 
 export function mapAIBriefToExecutiveBriefOutput(
@@ -59,8 +58,8 @@ export class GenerateBriefAction {
       research,
       knowledge,
       memory,
-      calendar: calendar.length > 0 ? calendar : [],
-      tasks: mockExecutiveTasks,
+      calendar,
+      tasks: [],
     });
 
     const historyStore = await createExecutiveBriefHistoryStore(this.userId);

@@ -57,6 +57,11 @@ import {
   SupabaseTrustedSourceRepository,
   type TrustedSourceRepository,
 } from "./trusted-source-repository";
+import {
+  SupabaseKitaChatRepository,
+  MockKitaChatRepository,
+  type KitaChatRepository,
+} from "./kita-chat-repository";
 
 export interface Repositories {
   users: UserRepository;
@@ -74,6 +79,7 @@ export interface Repositories {
   documents: DocumentRepository;
   decisions: DecisionRepository;
   intake: IntakeRepository;
+  kitaChat: KitaChatRepository;
 }
 
 export function createRepositories(client: SupabaseClient): Repositories {
@@ -93,6 +99,7 @@ export function createRepositories(client: SupabaseClient): Repositories {
     documents: new SupabaseDocumentRepository(client),
     decisions: new SupabaseDecisionRepository(client),
     intake: new SupabaseIntakeRepository(client),
+    kitaChat: new SupabaseKitaChatRepository(client),
   };
 }
 

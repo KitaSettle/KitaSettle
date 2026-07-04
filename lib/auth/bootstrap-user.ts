@@ -56,17 +56,17 @@ function createStarterBrief(): AIExecutiveBriefOutput {
     id: createId("brief"),
     headline: "Welcome to KitaSettle",
     executiveSummary:
-      "Complete your getting-to-know-you conversation so Kita can prepare briefs that fit how you work. Once discovery is done, your daily focus will appear here.",
+      "Complete your First Conversation so Kita can prepare briefings that fit how you work. Once that's done, your daily focus will appear here.",
     topPriorities: [
       {
         id: createId("priority"),
-        title: "Complete discovery",
+        title: "Complete your First Conversation",
         description: "Tell Kita about your role, goals, and how you like to work.",
       },
     ],
     risks: [],
     opportunities: [],
-    recommendedActions: ["Open discovery and answer a few questions to get started."],
+    recommendedActions: ["Continue your First Conversation to get started."],
     estimatedReadingSaved: "5 minutes",
     confidence: 40,
     topicsUsed: ["Onboarding"],

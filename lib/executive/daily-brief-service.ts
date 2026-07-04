@@ -9,6 +9,7 @@ import {
   emptyRecommendations,
   withExecutiveDnaFallback,
 } from "@/lib/executive-dna/defaults";
+import { buildPersonalizedStarterBrief } from "@/lib/executive/personalized-starter-brief";
 import { buildExecutiveConnectSnapshot } from "@/lib/integrations/connect-snapshot-service";
 import {
   EMPTY_CONNECT_SNAPSHOT,
@@ -20,7 +21,6 @@ import {
   withDecisionFallback,
 } from "@/lib/decision-engine/defaults";
 import { mapResearchQueueRecordToUi } from "@/lib/executive-brain/mappers";
-import { DISCOVERY_CONFIDENCE_TARGET } from "@/lib/types/executive-dna";
 import { isSameUtcDay } from "@/lib/utils/date";
 
 export async function generateIfMissing(
@@ -33,8 +33,8 @@ export async function generateIfMissing(
     DEFAULT_EXECUTIVE_DNA_STATUS,
   );
 
-  if (discoveryStatus.overallConfidence < DISCOVERY_CONFIDENCE_TARGET) {
-    throw new Error("Discovery interview required before loading today's brief.");
+  if (!discoveryStatus.interviewComplete) {
+    throw new Error("Complete your First Conversation before opening Today.");
   }
 
   const today = new Date();
@@ -42,10 +42,18 @@ export async function generateIfMissing(
   let generatedToday = false;
 
   if (!brief) {
-    const services = await createBrainServices(userId, undefined, { server: true });
-    await createGenerateBriefAction(services, userId, repos).execute();
-    brief = await repos.executiveBriefs.getBriefForDate(userId, today);
-    generatedToday = Boolean(brief);
+    try {
+      const services = await createBrainServices(userId, undefined, { server: true });
+      await createGenerateBriefAction(services, userId, repos).execute();
+      brief = await repos.executiveBriefs.getBriefForDate(userId, today);
+      generatedToday = Boolean(brief);
+    } catch (error) {
+      console.error("[KitaSettle] AI brief generation failed, using personalized starter:", error);
+      const profile = await repos.executiveDna.ensureProfile(userId);
+      const starter = buildPersonalizedStarterBrief(profile);
+      brief = await repos.executiveBriefs.saveBrief(userId, starter);
+      generatedToday = true;
+    }
   }
 
   if (!brief) {
@@ -53,7 +61,8 @@ export async function generateIfMissing(
   }
 
   if (!brief) {
-    throw new Error("Unable to load or generate today's executive brief.");
+    const profile = await repos.executiveDna.ensureProfile(userId);
+    brief = await repos.executiveBriefs.saveBrief(userId, buildPersonalizedStarterBrief(profile));
   }
 
   if (!generatedToday) {

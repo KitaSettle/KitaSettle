@@ -104,7 +104,7 @@ export function ExecutiveDailyLoader() {
         <h2 className="text-xl font-semibold text-foreground">Setting up your account</h2>
         <p className="mt-3 text-sm leading-relaxed text-muted">{error}</p>
         <Button className="mt-6" onClick={() => router.replace("/dashboard/discovery")}>
-          Continue to discovery
+          Continue to First Conversation
         </Button>
       </div>
     );

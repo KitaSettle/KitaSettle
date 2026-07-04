@@ -229,7 +229,7 @@ function DiscoveryInterviewContent() {
   return (
     <div className="mx-auto max-w-3xl kita-enter">
       <div className="mb-10">
-        <p className="text-sm font-medium uppercase tracking-[0.16em] text-accent">Getting to know you</p>
+        <p className="text-sm font-medium uppercase tracking-[0.16em] text-accent">First Conversation</p>
         <h1 className="font-display mt-3 text-3xl tracking-tight text-foreground sm:text-4xl">
           {allowUpdate ? "Update how Kita knows you" : "Help Kita understand how you work"}
         </h1>
