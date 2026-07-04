@@ -66,11 +66,9 @@ export class SupabaseIntakeRepository implements IntakeRepository {
     userId: string,
     item: Omit<IntakeRecord, "id" | "userId" | "createdAt">,
   ): Promise<IntakeRecord> {
-    const id = createId("intake");
     const { data, error } = await this.client
       .from("intake_items")
       .insert({
-        id,
         user_id: userId,
         source_type: item.sourceType,
         source_label: item.sourceLabel,
