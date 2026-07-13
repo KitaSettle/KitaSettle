@@ -41,7 +41,29 @@ export function KitaWorking({
     >
       <div className="relative flex h-12 w-12 items-center justify-center" aria-hidden>
         <span className="absolute inset-0 rounded-full bg-accent/10 animate-[kita-breathe_2.4s_ease-in-out_infinite]" />
-        <span className="relative h-2.5 w-2.5 rounded-full bg-accent animate-[kita-breathe_2.4s_ease-in-out_infinite]" />
+        <svg className="absolute inset-0 h-full w-full" viewBox="0 0 48 48">
+          <circle
+            cx="24"
+            cy="24"
+            r="19"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            className="text-accent/15"
+          />
+          <circle
+            cx="24"
+            cy="24"
+            r="19"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeDasharray="60 60"
+            className="origin-center animate-[kita-orbit-spin_2.6s_linear_infinite] text-accent"
+          />
+        </svg>
+        <span className="relative h-2 w-2 rounded-full bg-accent animate-[kita-breathe_2.4s_ease-in-out_infinite]" />
       </div>
       <p
         key={text}

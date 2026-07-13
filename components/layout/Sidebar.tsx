@@ -55,8 +55,13 @@ export function Sidebar({ onNavigate, onLogout }: SidebarProps) {
     <div className="flex h-full flex-col">
       <div className="border-b border-border/80 px-6 py-7">
         <Link href="/dashboard/executive" className="block" onClick={onNavigate}>
-          <span className="text-lg font-semibold tracking-tight text-foreground">KitaSettle</span>
-          <span className="mt-1 block text-xs text-muted">Your executive companion</span>
+          <span className="flex items-center gap-2">
+            <span className="relative flex h-1.5 w-1.5" aria-hidden>
+              <span className="absolute inline-flex h-full w-full animate-[kita-breathe_2.4s_ease-in-out_infinite] rounded-full bg-accent" />
+            </span>
+            <span className="font-display text-lg font-semibold tracking-tight text-foreground">KitaSettle</span>
+          </span>
+          <span className="mt-1 block font-mono text-[11px] uppercase tracking-[0.1em] text-muted">Your executive companion</span>
         </Link>
       </div>
 
@@ -78,7 +83,7 @@ export function Sidebar({ onNavigate, onLogout }: SidebarProps) {
                   onClick={onNavigate}
                   className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-colors duration-200 ${
                     isActive
-                      ? "bg-accent-soft text-accent"
+                      ? "bg-accent-soft text-accent dark:shadow-[inset_0_0_0_1px_var(--color-accent)]"
                       : "text-muted hover:bg-surface-muted hover:text-foreground"
                   }`}
                 >

@@ -62,13 +62,13 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <div className="min-h-screen bg-background">
       <div className="flex min-h-screen">
-        <aside className="hidden w-72 shrink-0 border-r border-border/80 bg-surface lg:block">
+        <aside className="kita-glass hidden w-72 shrink-0 border-r border-border/80 bg-surface dark:bg-surface/60 lg:block">
           <Sidebar onLogout={() => void handleLogout()} />
         </aside>
 
         <div className="flex min-h-screen flex-1 flex-col">
           <MobileNav onLogout={() => void handleLogout()}>
-            <header className="hidden items-center justify-end border-b border-border/80 bg-surface/80 px-10 py-5 backdrop-blur lg:flex">
+            <header className="kita-glass hidden items-center justify-end border-b border-border/80 bg-surface/80 px-10 py-5 backdrop-blur lg:flex">
               {logoutError && (
                 <p className="mr-4 text-sm text-warning" role="alert">
                   {logoutError}

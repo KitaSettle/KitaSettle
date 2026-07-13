@@ -35,12 +35,12 @@ function applyTheme(resolved: "light" | "dark") {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<ThemePreference>("system");
-  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
+  const [theme, setThemeState] = useState<ThemePreference>("dark");
+  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("dark");
 
   useEffect(() => {
     const stored = window.localStorage.getItem(STORAGE_KEY) as ThemePreference | null;
-    const initial = stored ?? "system";
+    const initial = stored ?? "dark";
     setThemeState(initial);
     const resolved = resolveTheme(initial);
     setResolvedTheme(resolved);

@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
 
-type BadgeVariant = "default" | "success" | "warning" | "muted";
+type BadgeVariant = "default" | "success" | "warning" | "danger" | "muted";
 
 interface BadgeProps {
   children: ReactNode;
@@ -11,6 +11,7 @@ const variantStyles: Record<BadgeVariant, string> = {
   default: "bg-accent/10 text-accent",
   success: "bg-success/10 text-success",
   warning: "bg-warning/10 text-warning",
+  danger: "bg-danger/10 text-danger",
   muted: "bg-surface-muted text-muted",
 };
 

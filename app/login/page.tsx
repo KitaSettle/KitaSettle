@@ -94,12 +94,31 @@ function LoginForm() {
     <div className="flex min-h-screen flex-col bg-background lg:flex-row">
       <div className="flex flex-1 flex-col justify-center px-6 py-14 sm:px-12 lg:px-20">
         <div className="mx-auto w-full max-w-md kita-enter">
-          <div className="mb-12">
-            <p className="text-lg font-semibold tracking-tight text-foreground">KitaSettle</p>
-            <p className="mt-1 text-xs text-muted">Your executive companion</p>
+          <div className="mb-12 flex items-center gap-3">
+            <span className="relative flex h-8 w-8 items-center justify-center" aria-hidden>
+              <svg className="absolute inset-0 h-full w-full text-accent" viewBox="0 0 32 32">
+                <circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" strokeWidth="1" className="opacity-20" />
+                <circle
+                  cx="16"
+                  cy="16"
+                  r="13"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.25"
+                  strokeLinecap="round"
+                  strokeDasharray="40 42"
+                  className="origin-center animate-[kita-orbit-spin_5s_linear_infinite]"
+                />
+              </svg>
+              <span className="relative h-1.5 w-1.5 rounded-full bg-accent animate-[kita-breathe_2.4s_ease-in-out_infinite]" />
+            </span>
+            <div>
+              <p className="font-display text-lg font-semibold tracking-tight text-foreground">KitaSettle</p>
+              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">Your executive companion</p>
+            </div>
           </div>
 
-          <h1 className="font-display text-3xl tracking-tight text-foreground sm:text-4xl">
+          <h1 className="font-display text-3xl font-light tracking-tight text-foreground sm:text-4xl">
             Welcome back
           </h1>
           <p className="mt-4 text-base leading-relaxed text-muted">
@@ -117,7 +136,7 @@ function LoginForm() {
                 autoComplete="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                className="mt-2.5 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-foreground outline-none transition-shadow focus:border-accent focus:ring-2 focus:ring-accent/20"
+                className="mt-2.5 w-full rounded-2xl border border-border bg-surface px-4 py-3 font-mono text-sm text-foreground outline-none transition-shadow focus:border-accent focus:ring-2 focus:ring-accent/20 dark:bg-surface/60 dark:kita-glass"
                 placeholder="you@company.com"
                 required
               />
@@ -141,7 +160,7 @@ function LoginForm() {
                 autoComplete="current-password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="mt-2.5 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-foreground outline-none transition-shadow focus:border-accent focus:ring-2 focus:ring-accent/20"
+                className="mt-2.5 w-full rounded-2xl border border-border bg-surface px-4 py-3 font-mono text-sm text-foreground outline-none transition-shadow focus:border-accent focus:ring-2 focus:ring-accent/20 dark:bg-surface/60 dark:kita-glass"
                 placeholder="Your password"
                 required
               />
@@ -176,12 +195,21 @@ function LoginForm() {
         </div>
       </div>
 
-      <div className="hidden flex-1 items-center justify-center bg-surface p-14 lg:flex">
-        <div className="max-w-md kita-enter">
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-accent">
+      <div className="kita-glass relative hidden flex-1 items-center justify-center overflow-hidden bg-surface p-14 lg:flex">
+        <svg
+          className="pointer-events-none absolute right-[-120px] top-1/2 h-[520px] w-[520px] -translate-y-1/2 text-accent opacity-[0.07]"
+          viewBox="0 0 100 100"
+          aria-hidden
+        >
+          <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" strokeWidth="0.5" />
+          <circle cx="50" cy="50" r="34" fill="none" stroke="currentColor" strokeWidth="0.5" />
+          <circle cx="50" cy="50" r="22" fill="none" stroke="currentColor" strokeWidth="0.5" />
+        </svg>
+        <div className="max-w-md kita-enter relative">
+          <p className="font-mono text-xs font-medium uppercase tracking-[0.2em] text-accent">
             Settle your morning
           </p>
-          <h2 className="font-display mt-6 text-4xl leading-tight tracking-tight text-foreground">
+          <h2 className="font-display mt-6 text-4xl font-light leading-tight tracking-tight text-foreground">
             Know exactly what deserves your attention.
           </h2>
           <p className="mt-6 text-base leading-relaxed text-muted">
