@@ -37,10 +37,51 @@ const INTERVIEW_FIELD_ORDER: ExecutiveDNAFieldKey[] = [
   "executiveLevel",
 ];
 
+// Kita only asks the user directly about these — everything else in
+// INTERVIEW_FIELD_ORDER is inferred in one pass once these are answered,
+// so onboarding stays to a handful of questions instead of walking all 21.
+const SHORT_INTERVIEW_FIELDS: ExecutiveDNAFieldKey[] = [
+  "profession",
+  "role",
+  "responsibilities",
+  "goals",
+];
+
+const INFERRED_FIELD_LIST_KEYS: ExecutiveDNAFieldKey[] = [
+  "currentProjects",
+  "researchInterests",
+  "learningInterests",
+  "importantTopics",
+  "focusAreas",
+];
+
+const INFERRED_FIELD_DEFAULTS: Partial<Record<ExecutiveDNAFieldKey, unknown>> = {
+  industry: "General",
+  currentProjects: [],
+  decisionStyle: "balanced",
+  leadershipStyle: "collaborative",
+  communicationStyle: "concise",
+  riskAppetite: "balanced",
+  researchInterests: [],
+  learningInterests: [],
+  importantTopics: [],
+  focusAreas: [],
+  preferredBriefLength: "standard",
+  preferredWorkingHours: "9am-6pm",
+  meetingPreferences: "balanced",
+  preferredAiPersonality: "executive advisor",
+  notificationPreferences: "balanced",
+  dailyBriefTime: "07:00",
+  confidenceThreshold: 75,
+  executiveLevel: "manager",
+};
+
+const INFERRED_FIELD_CONFIDENCE = 68;
+
 const FALLBACK_FIELD_CONFIDENCE = 82;
 
 function nextMissingField(profile: ExecutiveDNAProfile): ExecutiveDNAFieldKey | null {
-  for (const field of INTERVIEW_FIELD_ORDER) {
+  for (const field of SHORT_INTERVIEW_FIELDS) {
     const confidence =
       profile.fieldConfidence.find((item) => item.fieldKey === field)?.confidence ?? 0;
     const value = (profile.profile as unknown as Record<string, unknown>)[field];
@@ -221,9 +262,9 @@ export class DiscoveryInterviewService {
       parsed.reason,
     );
 
-    const complete = isInterviewComplete(updatedProfile);
+    const complete = nextMissingField(updatedProfile) === null;
     if (complete && !updatedProfile.interviewComplete) {
-      updatedProfile = await this.repos.executiveDna.markInterviewComplete(userId);
+      updatedProfile = await this.completeWithInference(userId, updatedProfile);
     }
     let nextQuestion: string | null = null;
     const messages = [...messagesWithUser];
@@ -238,7 +279,7 @@ export class DiscoveryInterviewService {
       messages.push({
         role: "assistant",
         content:
-          "Your Executive DNA profile is now strong enough for personalized intelligence. KitaSettle will keep learning as you work.",
+          "That's all I need for now — I've filled in the rest based on what you told me, and I'll keep refining it as we work together.",
         timestamp: nowIso(),
       });
     }
@@ -257,6 +298,74 @@ export class DiscoveryInterviewService {
       overallConfidence: updatedProfile.overallConfidence,
       isComplete: complete,
     };
+  }
+
+  private async completeWithInference(
+    userId: string,
+    profile: ExecutiveDNAProfile,
+  ): Promise<ExecutiveDNAProfile> {
+    const remainingFields = INTERVIEW_FIELD_ORDER.filter(
+      (field) => !SHORT_INTERVIEW_FIELDS.includes(field),
+    );
+    const inferred = await this.inferRemainingFields(profile, remainingFields);
+
+    let updatedProfile = profile;
+    for (const field of remainingFields) {
+      const value = inferred[field] ?? INFERRED_FIELD_DEFAULTS[field];
+      if (value === undefined) continue;
+      updatedProfile = await this.repos.executiveDna.updateProfileField(
+        userId,
+        field,
+        value,
+        INFERRED_FIELD_CONFIDENCE,
+        "inference",
+        "Inferred from your discovery answers so onboarding stays short.",
+      );
+    }
+
+    return this.repos.executiveDna.markInterviewComplete(userId);
+  }
+
+  private async inferRemainingFields(
+    profile: ExecutiveDNAProfile,
+    remainingFields: ExecutiveDNAFieldKey[],
+  ): Promise<Partial<Record<ExecutiveDNAFieldKey, unknown>>> {
+    if (!isOpenAIConfigured()) return {};
+
+    try {
+      const client = getOpenAIClient();
+      const known = SHORT_INTERVIEW_FIELDS.reduce<Record<string, unknown>>((acc, field) => {
+        acc[field] = (profile.profile as unknown as Record<string, unknown>)[field];
+        return acc;
+      }, {});
+
+      const response = await client.chat.completions.create({
+        model: getOpenAIModel(),
+        temperature: 0.4,
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content: [
+              "You infer a busy executive's working-style profile from a handful of answers,",
+              "so their onboarding can stay short. Given the known fields below, infer plausible",
+              `values for exactly these remaining fields: ${remainingFields.join(", ")}.`,
+              `List-type fields (${INFERRED_FIELD_LIST_KEYS.join(", ")}) must be arrays of short strings.`,
+              "All other fields must be short strings, except confidenceThreshold which is a number 0-100.",
+              "Be sensible and moderate — these are inferred, not stated, so avoid extreme values.",
+              "Return JSON only, keyed by field name.",
+            ].join(" "),
+          },
+          { role: "user", content: JSON.stringify(known) },
+        ],
+      });
+
+      const content = response.choices[0]?.message?.content ?? "{}";
+      return JSON.parse(content) as Partial<Record<ExecutiveDNAFieldKey, unknown>>;
+    } catch (error) {
+      console.error("[KitaSettle] Discovery interview field inference failed, using defaults:", error);
+      return {};
+    }
   }
 
   private async extractFieldValue(
