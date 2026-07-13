@@ -104,15 +104,36 @@ export function TalkToKitaPanel() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 kita-enter">
-      <header>
-        <p className="text-sm font-medium uppercase tracking-[0.16em] text-accent">Talk to Kita</p>
-        <h1 className="font-display mt-3 text-3xl tracking-tight text-foreground sm:text-4xl">
-          Your executive companion
-        </h1>
-        <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted">
-          Ask questions, think out loud, or tell me what deserves your attention. I learn from every
-          conversation.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-6">
+        <div>
+          <p className="text-sm font-medium uppercase tracking-[0.16em] text-accent">Talk to Kita</p>
+          <h1 className="font-display mt-3 text-3xl tracking-tight text-foreground sm:text-4xl">
+            Your executive companion
+          </h1>
+          <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted">
+            Ask questions, think out loud, or tell me what deserves your attention. I learn from every
+            conversation.
+          </p>
+        </div>
+
+        {!voiceChat.active && voiceChat.supportStatus !== "checking" && (
+          <div className="flex flex-col items-end gap-2">
+            <button
+              type="button"
+              onClick={() => voiceChat.start()}
+              disabled={!voiceChat.isSupported}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-accent px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-muted disabled:shadow-none dark:text-background dark:shadow-[0_0_24px_-4px_var(--color-accent)] dark:disabled:shadow-none"
+            >
+              <MicIcon />
+              Talk to Kita
+            </button>
+            {voiceChat.supportStatus === "unsupported" && (
+              <p className="max-w-[16rem] text-right text-xs text-muted">
+                Voice chat needs Chrome, Edge, or Safari. Text chat below works everywhere.
+              </p>
+            )}
+          </div>
+        )}
       </header>
 
       {data.curiosityQuestion && (
@@ -184,22 +205,6 @@ export function TalkToKitaPanel() {
             {busy ? "Kita is thinking..." : "Send"}
           </Button>
           <GiveToKita />
-          {!voiceChat.active && (
-            <button
-              type="button"
-              onClick={() => voiceChat.start()}
-              disabled={!voiceChat.isSupported}
-              title={
-                voiceChat.isSupported
-                  ? "Talk to Kita with your voice"
-                  : "Voice chat isn't supported in this browser yet"
-              }
-              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-border px-4 py-2.5 text-sm font-medium text-muted transition-all duration-200 hover:bg-surface-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <MicIcon />
-              Talk
-            </button>
-          )}
         </div>
       </form>
     </div>

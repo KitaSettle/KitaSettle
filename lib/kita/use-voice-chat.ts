@@ -77,8 +77,11 @@ export interface UseVoiceChatOptions {
   onError?: (message: string) => void;
 }
 
+export type VoiceSupportStatus = "checking" | "supported" | "unsupported";
+
 export interface UseVoiceChatResult {
   isSupported: boolean;
+  supportStatus: VoiceSupportStatus;
   active: boolean;
   state: VoiceChatState;
   interimTranscript: string;
@@ -90,9 +93,15 @@ export interface UseVoiceChatResult {
 }
 
 export function useVoiceChat({ onMessagesUpdated, onError }: UseVoiceChatOptions): UseVoiceChatResult {
-  const recognitionSupported = getSpeechRecognitionCtor() !== null;
-  const synthesisSupported = isSpeechSynthesisSupported();
-  const isSupported = recognitionSupported && synthesisSupported;
+  // Computed post-mount (not during render) so server and first-client-render
+  // output always match -- window/SpeechRecognition don't exist during SSR.
+  const [supportStatus, setSupportStatus] = useState<VoiceSupportStatus>("checking");
+  const isSupported = supportStatus === "supported";
+
+  useEffect(() => {
+    const supported = getSpeechRecognitionCtor() !== null && isSpeechSynthesisSupported();
+    setSupportStatus(supported ? "supported" : "unsupported");
+  }, []);
 
   const [active, setActive] = useState(false);
   const [state, setState] = useState<VoiceChatState>("idle");
@@ -113,14 +122,14 @@ export function useVoiceChat({ onMessagesUpdated, onError }: UseVoiceChatOptions
   const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
 
   useEffect(() => {
-    if (!synthesisSupported) return;
+    if (!isSpeechSynthesisSupported()) return;
     function loadVoices() {
       voiceRef.current = pickBestVoice(window.speechSynthesis.getVoices());
     }
     loadVoices();
     window.speechSynthesis.addEventListener("voiceschanged", loadVoices);
     return () => window.speechSynthesis.removeEventListener("voiceschanged", loadVoices);
-  }, [synthesisSupported]);
+  }, []);
 
   const stopAudioMeter = useCallback(() => {
     if (meterFrameRef.current !== null) {
@@ -187,7 +196,7 @@ export function useVoiceChat({ onMessagesUpdated, onError }: UseVoiceChatOptions
   const speak = useCallback(
     (text: string): Promise<void> =>
       new Promise((resolve) => {
-        if (!synthesisSupported || !text.trim()) {
+        if (!isSpeechSynthesisSupported() || !text.trim()) {
           resolve();
           return;
         }
@@ -208,7 +217,7 @@ export function useVoiceChat({ onMessagesUpdated, onError }: UseVoiceChatOptions
         };
         window.speechSynthesis.speak(utterance);
       }),
-    [bumpSpeakingPulse, stopSpeakingPulse, synthesisSupported],
+    [bumpSpeakingPulse, stopSpeakingPulse],
   );
 
   const beginListening = useCallback(() => {
@@ -364,15 +373,16 @@ export function useVoiceChat({ onMessagesUpdated, onError }: UseVoiceChatOptions
     }
     recognitionRef.current?.abort();
     recognitionRef.current = null;
-    if (synthesisSupported) window.speechSynthesis.cancel();
+    if (isSpeechSynthesisSupported()) window.speechSynthesis.cancel();
     stopSpeakingPulse();
     stopAudioMeter();
-  }, [stopAudioMeter, stopSpeakingPulse, synthesisSupported]);
+  }, [stopAudioMeter, stopSpeakingPulse]);
 
   useEffect(() => () => stop(), [stop]);
 
   return {
     isSupported,
+    supportStatus,
     active,
     state,
     interimTranscript,
