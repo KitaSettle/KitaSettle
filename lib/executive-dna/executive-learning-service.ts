@@ -111,6 +111,19 @@ export class ExecutiveLearningService {
     );
   }
 
+  async observeConversation(userId: string, messageExcerpt: string): Promise<void> {
+    const excerpt = messageExcerpt.trim().slice(0, 60);
+    if (!excerpt) return;
+    await this.observe(
+      userId,
+      "learningInterests",
+      [excerpt],
+      "conversation",
+      "Discussed a topic with Kita in conversation.",
+      2,
+    );
+  }
+
   async observeBriefUsage(userId: string): Promise<void> {
     await this.observe(
       userId,

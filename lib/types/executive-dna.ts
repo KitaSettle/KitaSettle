@@ -96,7 +96,8 @@ export type ExecutiveDNALearningSource =
   | "email"
   | "document_upload"
   | "inference"
-  | "manual";
+  | "manual"
+  | "conversation";
 
 export interface ExecutiveDNAProfileVersion {
   id: EntityId;

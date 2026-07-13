@@ -7,28 +7,16 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { KitaWorking } from "@/components/ui/KitaWorking";
 import { GiveToKita } from "@/components/intake/GiveToKita";
+import { KitaOrbit } from "@/components/kita/KitaOrbit";
+import { useVoiceChat } from "@/lib/kita/use-voice-chat";
+import { fetchKitaConversation, sendKitaMessage, type TalkPayload } from "@/lib/kita/submit-message";
 
-interface TalkPayload {
-  messages: KitaChatMessage[];
-  curiosityQuestion: string | null;
-}
-
-const MAX_SUBMIT_ATTEMPTS = 3;
-
-async function submitMessageWithRetry(message: string): Promise<Response> {
-  let lastResponse: Response | null = null;
-  for (let attempt = 0; attempt < MAX_SUBMIT_ATTEMPTS; attempt += 1) {
-    if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
-    lastResponse = await fetch("/api/kita/talk", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message }),
-    });
-    if (lastResponse.ok) return lastResponse;
-    if (lastResponse.status === 401 || lastResponse.status === 403) break;
-  }
-  return lastResponse ?? new Response(null, { status: 500 });
-}
+const VOICE_STATE_LABEL: Record<string, string> = {
+  idle: "Tap to talk to Kita",
+  listening: "Listening...",
+  thinking: "Kita is thinking...",
+  speaking: "Kita is speaking...",
+};
 
 export function TalkToKitaPanel() {
   const [data, setData] = useState<TalkPayload | null>(null);
@@ -37,15 +25,15 @@ export function TalkToKitaPanel() {
   const [error, setError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  const voiceChat = useVoiceChat({
+    onMessagesUpdated: (payload) => setData(payload),
+    onError: (message) => setError(message),
+  });
+
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      const response = await fetch("/api/kita/talk");
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(payload?.error ?? "Could not open Talk to Kita");
-      }
-      const payload = (await response.json()) as TalkPayload;
+      const payload = await fetchKitaConversation();
       if (!cancelled) setData(payload);
     }
     void load().catch((loadError) => {
@@ -81,9 +69,7 @@ export function TalkToKitaPanel() {
     setData({ ...data, messages: [...data.messages, optimistic] });
 
     try {
-      const response = await submitMessageWithRetry(trimmed);
-      const payload = (await response.json()) as TalkPayload & { error?: string };
-      if (!response.ok) throw new Error(payload.error ?? "Kita couldn't reply just now. Please try again.");
+      const payload = await sendKitaMessage(trimmed);
       setData(payload);
     } catch (submitError) {
       setError(
@@ -91,8 +77,11 @@ export function TalkToKitaPanel() {
           ? submitError.message
           : "Kita couldn't reply just now. Please try again.",
       );
-      const reload = await fetch("/api/kita/talk");
-      if (reload.ok) setData((await reload.json()) as TalkPayload);
+      try {
+        setData(await fetchKitaConversation());
+      } catch {
+        // keep the optimistic state if reload also fails
+      }
     } finally {
       setBusy(false);
     }
@@ -133,6 +122,32 @@ export function TalkToKitaPanel() {
         </Card>
       )}
 
+      {voiceChat.permissionDenied && (
+        <p className="rounded-2xl bg-warning/10 px-4 py-3 text-sm text-warning" role="alert">
+          Kita couldn&apos;t access your microphone. Check your browser&apos;s site permissions, or keep
+          using text chat below.
+        </p>
+      )}
+
+      {voiceChat.active && (
+        <Card padding="relaxed" className="text-center">
+          <KitaOrbit
+            state={voiceChat.state}
+            audioLevel={voiceChat.audioLevel}
+            speakingPulse={voiceChat.speakingPulse}
+          />
+          <p className="mt-4 font-mono text-xs uppercase tracking-[0.14em] text-accent">
+            {VOICE_STATE_LABEL[voiceChat.state]}
+          </p>
+          <p className="mx-auto mt-3 min-h-[1.5rem] max-w-md text-sm leading-relaxed text-muted">
+            {voiceChat.interimTranscript || " "}
+          </p>
+          <Button variant="secondary" className="mt-6" onClick={() => voiceChat.stop()}>
+            Stop voice chat
+          </Button>
+        </Card>
+      )}
+
       <Card className="max-h-[32rem] overflow-y-auto" padding="relaxed">
         <div className="space-y-4">
           {data.messages.map((entry) => (
@@ -169,8 +184,36 @@ export function TalkToKitaPanel() {
             {busy ? "Kita is thinking..." : "Send"}
           </Button>
           <GiveToKita />
+          {!voiceChat.active && (
+            <button
+              type="button"
+              onClick={() => voiceChat.start()}
+              disabled={!voiceChat.isSupported}
+              title={
+                voiceChat.isSupported
+                  ? "Talk to Kita with your voice"
+                  : "Voice chat isn't supported in this browser yet"
+              }
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-border px-4 py-2.5 text-sm font-medium text-muted transition-all duration-200 hover:bg-surface-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <MicIcon />
+              Talk
+            </button>
+          )}
         </div>
       </form>
     </div>
+  );
+}
+
+function MicIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z"
+      />
+    </svg>
   );
 }
