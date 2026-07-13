@@ -16,8 +16,8 @@ export const runtime = "nodejs";
 async function probeSupabase(): Promise<"ok" | "degraded" | "down"> {
   if (!isSupabaseConfigured()) return "down";
   try {
-    const response = await fetch(`${env.supabaseUrl}/rest/v1/`, {
-      headers: { apikey: env.supabaseAnonKey },
+    const response = await fetch(`${env.supabaseUrl}/rest/v1/users?select=id&limit=1`, {
+      headers: { apikey: env.supabaseAnonKey, Authorization: `Bearer ${env.supabaseAnonKey}` },
       signal: AbortSignal.timeout(5000),
     });
     return response.ok ? "ok" : "degraded";
