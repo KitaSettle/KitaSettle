@@ -2,6 +2,7 @@
 
 import { isSupabaseConfigured } from "@/lib/config/env";
 import { createClient } from "@/lib/supabase/client";
+import { DEFAULT_POST_LOGIN_PATH } from "@/lib/auth/post-login";
 import type { AccountHint } from "./errors";
 import * as mockAuth from "./mock-client";
 
@@ -53,7 +54,7 @@ export async function signUpWithEmail(email: string, password: string, name?: st
     password,
     options: {
       data: { name: name ?? email.split("@")[0] },
-      emailRedirectTo: getAuthCallbackUrl("/dashboard/executive"),
+      emailRedirectTo: getAuthCallbackUrl(DEFAULT_POST_LOGIN_PATH),
     },
   });
 }
