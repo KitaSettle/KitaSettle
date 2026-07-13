@@ -28,8 +28,9 @@ export async function POST(request: Request) {
   const providedToken = request.headers.get("x-kita-setup-token")?.trim();
   const userId = await requireAuthUserId();
   const isAuthenticated = !isErrorResponse(userId);
+  const hasValidSetupToken = Boolean(setupToken) && providedToken === setupToken;
 
-  if (!isAuthenticated && setupToken && providedToken !== setupToken) {
+  if (!isAuthenticated && !hasValidSetupToken) {
     return NextResponse.json(
       { error: "Schema setup requires sign-in or a valid setup token while tables are missing." },
       { status: 401 },
@@ -86,6 +87,9 @@ export async function POST(request: Request) {
 }
 
 export async function GET() {
+  const userId = await requireAuthUserId();
+  if (isErrorResponse(userId)) return userId;
+
   const report = await getSchemaHealthReport();
   return NextResponse.json({
     ...report,

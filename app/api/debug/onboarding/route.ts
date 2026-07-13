@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isErrorResponse, requireAuthUserId } from "@/lib/api/auth";
 import { getAuthUserReady } from "@/lib/auth/ensure-user-ready";
 import { getSchemaHealthReport } from "@/lib/database/schema-health";
 import { createClient } from "@/lib/supabase/server";
@@ -8,6 +9,9 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET() {
+  const gate = await requireAuthUserId();
+  if (isErrorResponse(gate)) return gate;
+
   const ready = await getAuthUserReady();
   if (ready instanceof NextResponse) {
     const payload = (await ready.json().catch(() => null)) as {
@@ -17,7 +21,7 @@ export async function GET() {
 
     const schema = await getSchemaHealthReport();
     return NextResponse.json({
-      authenticated: false,
+      authenticated: true,
       schema,
       bootstrapAttempted: true,
       bootstrapResult: payload?.bootstrap ?? null,
