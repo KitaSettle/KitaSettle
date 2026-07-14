@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { getSignOutErrorMessage, isAuthenticated, onAuthStateChange, signOut } from "@/lib/auth";
 import { Button } from "@/components/ui/Button";
 import { KitaWorking } from "@/components/ui/KitaWorking";
+import { KitaQuickAccess } from "@/components/kita/KitaQuickAccess";
 import { MobileNav } from "./MobileNav";
 import { OnboardingGate } from "./OnboardingGate";
 import { Sidebar } from "./Sidebar";
@@ -85,6 +86,8 @@ export function AppShell({ children }: AppShellProps) {
           </MobileNav>
         </div>
       </div>
+
+      {pathname !== "/dashboard/talk" && <KitaQuickAccess />}
     </div>
   );
 }

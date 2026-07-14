@@ -274,7 +274,7 @@ export function ExecutiveBrainContent({ data }: ExecutiveBrainContentProps) {
               onClick={() => setSearchQuery(keyword)}
               className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                 searchQuery.toLowerCase() === keyword.toLowerCase()
-                  ? "bg-accent text-white"
+                  ? "bg-accent text-white dark:text-background"
                   : "bg-surface-muted text-muted hover:text-foreground"
               }`}
             >

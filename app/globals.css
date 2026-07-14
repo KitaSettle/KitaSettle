@@ -15,6 +15,7 @@
   --color-success: #0f8a5f;
   --color-warning: #b3670c;
   --color-danger: #c73a3a;
+  --color-scrim: rgba(15, 23, 42, 0.3);
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-display), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-mono-jetbrains), ui-monospace, "SF Mono", Menlo, monospace;
@@ -33,6 +34,7 @@
   --color-success: #3dd68c;
   --color-warning: #ffb454;
   --color-danger: #ff6b6b;
+  --color-scrim: rgba(0, 0, 0, 0.6);
 }
 
 @keyframes kita-breathe {

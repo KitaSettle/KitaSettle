@@ -118,15 +118,15 @@ export function TalkToKitaPanel() {
 
         {!voiceChat.active && voiceChat.supportStatus !== "checking" && (
           <div className="flex flex-col items-end gap-2">
-            <button
+            <Button
               type="button"
               onClick={() => voiceChat.start()}
               disabled={!voiceChat.isSupported}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-accent px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-muted disabled:shadow-none dark:text-background dark:shadow-[0_0_24px_-4px_var(--color-accent)] dark:disabled:shadow-none"
+              className="gap-2"
             >
               <MicIcon />
               Talk to Kita
-            </button>
+            </Button>
             {voiceChat.supportStatus === "unsupported" && (
               <p className="max-w-[16rem] text-right text-xs text-muted">
                 Voice chat needs Chrome, Edge, or Safari. Text chat below works everywhere.

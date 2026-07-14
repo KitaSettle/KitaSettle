@@ -32,7 +32,7 @@ export function MobileNav({ children, onLogout }: MobileNavProps) {
         <div className="fixed inset-0 z-50 lg:hidden">
           <button
             type="button"
-            className="absolute inset-0 bg-black/30 backdrop-blur-sm dark:bg-black/50"
+            className="absolute inset-0 bg-scrim backdrop-blur-sm"
             onClick={() => setOpen(false)}
             aria-label="Close menu"
           />
