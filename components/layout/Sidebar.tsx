@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { navItems } from "@/lib/navigation";
 import { Button } from "@/components/ui/Button";
+import { KitaLogoMark } from "@/components/ui/KitaLogoMark";
 
 function NavIcon({ icon }: { icon: NavItem["icon"] }) {
   if (icon === "dashboard") {
@@ -56,9 +57,7 @@ export function Sidebar({ onNavigate, onLogout }: SidebarProps) {
       <div className="border-b border-border/80 px-6 py-7">
         <Link href="/dashboard/executive" className="block" onClick={onNavigate}>
           <span className="flex items-center gap-2">
-            <span className="relative flex h-1.5 w-1.5" aria-hidden>
-              <span className="absolute inline-flex h-full w-full animate-[kita-breathe_2.4s_ease-in-out_infinite] rounded-full bg-accent" />
-            </span>
+            <KitaLogoMark size={22} />
             <span className="font-display text-lg font-semibold tracking-tight text-foreground">KitaSettle</span>
           </span>
           <span className="mt-1 block font-mono text-[11px] uppercase tracking-[0.1em] text-muted">Your executive companion</span>

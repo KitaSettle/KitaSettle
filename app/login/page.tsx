@@ -14,6 +14,7 @@ import {
 import { DEFAULT_POST_LOGIN_PATH } from "@/lib/auth/post-login";
 import { Button } from "@/components/ui/Button";
 import { KitaWorking } from "@/components/ui/KitaWorking";
+import { KitaLogoMark } from "@/components/ui/KitaLogoMark";
 
 const URL_ERROR_MESSAGES: Record<string, string> = {
   auth: "Sign-in was interrupted or the link expired. Please try again.",
@@ -95,23 +96,7 @@ function LoginForm() {
       <div className="flex flex-1 flex-col justify-center px-6 py-14 sm:px-12 lg:px-20">
         <div className="mx-auto w-full max-w-md kita-enter">
           <div className="mb-12 flex items-center gap-3">
-            <span className="relative flex h-8 w-8 items-center justify-center" aria-hidden>
-              <svg className="absolute inset-0 h-full w-full text-accent" viewBox="0 0 32 32">
-                <circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" strokeWidth="1" className="opacity-20" />
-                <circle
-                  cx="16"
-                  cy="16"
-                  r="13"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.25"
-                  strokeLinecap="round"
-                  strokeDasharray="40 42"
-                  className="origin-center animate-[kita-orbit-spin_5s_linear_infinite]"
-                />
-              </svg>
-              <span className="relative h-1.5 w-1.5 rounded-full bg-accent animate-[kita-breathe_2.4s_ease-in-out_infinite]" />
-            </span>
+            <KitaLogoMark size={32} />
             <div>
               <p className="font-display text-lg font-semibold tracking-tight text-foreground">KitaSettle</p>
               <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">Your executive companion</p>

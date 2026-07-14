@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { TalkToKitaPanel } from "./TalkToKitaPanel";
+import { KitaLogoMark } from "@/components/ui/KitaLogoMark";
 
 export function KitaQuickAccess() {
   const [open, setOpen] = useState(false);
@@ -37,23 +38,7 @@ export function KitaQuickAccess() {
         aria-expanded={open}
         className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full border border-border/80 bg-surface shadow-lg transition-transform duration-200 hover:scale-105 kita-glass dark:shadow-[0_0_28px_-6px_var(--color-accent)]"
       >
-        <span className="relative flex h-8 w-8 items-center justify-center" aria-hidden>
-          <svg className="absolute inset-0 h-full w-full text-accent" viewBox="0 0 32 32">
-            <circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" strokeWidth="1" className="opacity-20" />
-            <circle
-              cx="16"
-              cy="16"
-              r="13"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeDasharray="40 42"
-              className="origin-center animate-[kita-orbit-spin_4s_linear_infinite]"
-            />
-          </svg>
-          <span className="relative h-2 w-2 rounded-full bg-accent animate-[kita-breathe_2.4s_ease-in-out_infinite]" />
-        </span>
+        <KitaLogoMark size={30} />
       </button>
 
       {open && (
