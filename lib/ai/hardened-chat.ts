@@ -2,8 +2,11 @@ import { isOpenAIConfigured } from "@/lib/config/env";
 import { prepareAiUserContent } from "@/lib/security/sanitize";
 import { getOpenAIClient, getOpenAIModel } from "./openai-client";
 
-const DEFAULT_TIMEOUT_MS = 25_000;
-const MAX_ATTEMPTS = 3;
+// Kept low and worst-case-bounded (2 * 12s + backoff ~= 24s) so this never
+// outruns a serverless function's own time limit -- a route-level maxDuration
+// is only a backstop if OpenAI itself is slow, not if this retries past it.
+const DEFAULT_TIMEOUT_MS = 12_000;
+const MAX_ATTEMPTS = 2;
 
 export interface HardenedChatRequest {
   systemPrompt: string;
