@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getSignOutErrorMessage, isAuthenticated, onAuthStateChange, signOut } from "@/lib/auth";
+import { withTimeout } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { KitaWorking } from "@/components/ui/KitaWorking";
 import { KitaQuickAccess } from "@/components/kita/KitaQuickAccess";
@@ -14,6 +15,8 @@ interface AppShellProps {
   children: React.ReactNode;
 }
 
+const AUTH_CHECK_TIMEOUT_MS = 10_000;
+
 export function AppShell({ children }: AppShellProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -21,14 +24,28 @@ export function AppShell({ children }: AppShellProps) {
   const [logoutError, setLogoutError] = useState<string | null>(null);
 
   useEffect(() => {
-    void isAuthenticated().then((authenticated: boolean) => {
-      if (!authenticated) {
+    let cancelled = false;
+
+    void withTimeout(isAuthenticated(), AUTH_CHECK_TIMEOUT_MS)
+      .then((authenticated: boolean) => {
+        if (cancelled) return;
+        if (!authenticated) {
+          const next = pathname && pathname !== "/login" ? `?next=${encodeURIComponent(pathname)}` : "";
+          router.replace(`/login${next}`);
+          return;
+        }
+        setReady(true);
+      })
+      .catch((error) => {
+        console.error("[KitaSettle] Auth check failed:", error);
+        if (cancelled) return;
         const next = pathname && pathname !== "/login" ? `?next=${encodeURIComponent(pathname)}` : "";
         router.replace(`/login${next}`);
-        return;
-      }
-      setReady(true);
-    });
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [pathname, router]);
 
   useEffect(() => {

@@ -7,6 +7,7 @@ import { requireAuthenticatedUser, writeAudit } from "@/lib/security/secure-rout
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const maxDuration = 45;
 
 export async function GET(request: Request) {
   const authUserId = await requireAuthenticatedUser(request, "ai");

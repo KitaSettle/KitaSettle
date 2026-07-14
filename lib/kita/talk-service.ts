@@ -3,6 +3,7 @@ import type { KitaChatMessage } from "@/lib/repositories/kita-chat-repository";
 import { createHardenedChatCompletion } from "@/lib/ai/hardened-chat";
 import { getCuriosityQuestion } from "@/lib/kita/curiosity-engine";
 import { createExecutiveDNAEngine } from "@/lib/executive-dna";
+import { withTimeout } from "@/lib/utils";
 
 export interface TalkToKitaPayload {
   messages: KitaChatMessage[];
@@ -49,7 +50,11 @@ export class TalkToKitaService {
 
     try {
       const dnaEngine = createExecutiveDNAEngine(this.repos);
-      await dnaEngine.learningService.observeConversation(userId, trimmed);
+      await withTimeout(
+        dnaEngine.learningService.observeConversation(userId, trimmed),
+        5_000,
+        "Learning observation",
+      );
     } catch (error) {
       console.error("[KitaSettle] Talk to Kita learning observation failed:", error);
     }

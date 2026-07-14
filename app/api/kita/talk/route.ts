@@ -9,6 +9,7 @@ import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const maxDuration = 30;
 
 const talkMessageSchema = z.object({
   message: z.string().trim().min(1).max(4000),

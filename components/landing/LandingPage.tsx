@@ -4,21 +4,36 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isAuthenticated } from "@/lib/auth";
+import { withTimeout } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { KitaWorking } from "@/components/ui/KitaWorking";
+
+const AUTH_CHECK_TIMEOUT_MS = 10_000;
 
 export function LandingPage() {
   const router = useRouter();
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    void isAuthenticated().then((authenticated) => {
-      if (authenticated) {
-        router.replace("/dashboard/executive");
-        return;
-      }
-      setChecking(false);
-    });
+    let cancelled = false;
+
+    void withTimeout(isAuthenticated(), AUTH_CHECK_TIMEOUT_MS)
+      .then((authenticated) => {
+        if (cancelled) return;
+        if (authenticated) {
+          router.replace("/dashboard/executive");
+          return;
+        }
+        setChecking(false);
+      })
+      .catch((error) => {
+        console.error("[KitaSettle] Landing auth check failed:", error);
+        if (!cancelled) setChecking(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   if (checking) {
