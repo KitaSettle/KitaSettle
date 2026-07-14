@@ -8,6 +8,7 @@ import { interviewAnswerSchema, parseJsonBody } from "@/lib/security/validation"
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const maxDuration = 30;
 
 export async function GET(request: Request) {
   const userId = await requireAuthenticatedUser(request, "mutation");
