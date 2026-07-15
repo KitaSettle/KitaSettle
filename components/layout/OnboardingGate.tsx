@@ -4,10 +4,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { isOnboardingAllowedPath } from "@/lib/auth/onboarding-paths";
 import { KitaWorking } from "@/components/ui/KitaWorking";
+import { withTimeout } from "@/lib/utils";
 
 interface OnboardingGateProps {
   children: React.ReactNode;
 }
+
+const ONBOARDING_CHECK_TIMEOUT_MS = 10_000;
 
 export function OnboardingGate({ children }: OnboardingGateProps) {
   const router = useRouter();
@@ -24,7 +27,11 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
       }
 
       try {
-        const response = await fetch("/api/executive-dna/status");
+        const response = await withTimeout(
+          fetch("/api/executive-dna/status"),
+          ONBOARDING_CHECK_TIMEOUT_MS,
+          "Onboarding status check",
+        );
         if (!response.ok) {
           if (!cancelled) setReady(true);
           return;
@@ -42,8 +49,9 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
           router.replace("/dashboard/discovery");
           return;
         }
-      } catch {
+      } catch (error) {
         // Allow render on transient failures; discovery page handles its own errors.
+        console.error("[KitaSettle] Onboarding status check failed:", error);
       }
 
       if (!cancelled) setReady(true);
