@@ -49,14 +49,29 @@ export function AppShell({ children }: AppShellProps) {
   }, [pathname, router]);
 
   useEffect(() => {
+    let cancelled = false;
+
     const unsubscribe = onAuthStateChange((authenticated) => {
-      if (!authenticated) {
-        const next = pathname && pathname !== "/login" ? `?next=${encodeURIComponent(pathname)}` : "";
-        router.replace(`/login${next}`);
-      }
+      if (authenticated) return;
+
+      // A single "signed out" event can be a transient blip during token
+      // refresh rather than a real sign-out. Re-verify directly before
+      // bouncing the user out of whatever they're doing.
+      void isAuthenticated()
+        .then((stillAuthenticated) => {
+          if (cancelled || stillAuthenticated) return;
+          const next = pathname && pathname !== "/login" ? `?next=${encodeURIComponent(pathname)}` : "";
+          router.replace(`/login${next}`);
+        })
+        .catch((error) => {
+          console.error("[KitaSettle] Auth re-check after sign-out event failed:", error);
+        });
     });
 
-    return unsubscribe;
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
   }, [pathname, router]);
 
   async function handleLogout() {
