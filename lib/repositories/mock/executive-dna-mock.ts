@@ -137,6 +137,30 @@ export class MockExecutiveDNARepository implements ExecutiveDNARepository {
     return clone(updated);
   }
 
+  async updateProfileFields(
+    userId: string,
+    updates: Array<{
+      fieldKey: ExecutiveDNAFieldKey;
+      value: unknown;
+      confidence: number;
+      source: ExecutiveDNALearningSource;
+      reason: string;
+    }>,
+  ): Promise<ExecutiveDNAProfile> {
+    let latest = await this.ensureProfile(userId);
+    for (const update of updates) {
+      latest = await this.updateProfileField(
+        userId,
+        update.fieldKey,
+        update.value,
+        update.confidence,
+        update.source,
+        update.reason,
+      );
+    }
+    return latest;
+  }
+
   async recordLearningEvent(
     userId: string,
     event: Omit<ExecutiveDNALearningEvent, "id" | "userId" | "createdAt">,

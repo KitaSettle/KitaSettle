@@ -29,6 +29,16 @@ export interface ExecutiveDNARepository {
     source: ExecutiveDNALearningSource,
     reason: string,
   ): Promise<ExecutiveDNAProfile>;
+  updateProfileFields(
+    userId: string,
+    updates: Array<{
+      fieldKey: ExecutiveDNAFieldKey;
+      value: unknown;
+      confidence: number;
+      source: ExecutiveDNALearningSource;
+      reason: string;
+    }>,
+  ): Promise<ExecutiveDNAProfile>;
   recordLearningEvent(
     userId: string,
     event: Omit<ExecutiveDNALearningEvent, "id" | "userId" | "createdAt">,
@@ -236,6 +246,117 @@ export class SupabaseExecutiveDNARepository implements ExecutiveDNARepository {
 
     if (nextVersion !== current.version) {
       await this.saveProfileVersion(userId, nextProfile, overallConfidence, reason);
+    }
+
+    return {
+      ...current,
+      profile: nextProfile,
+      fieldConfidence: nextFieldConfidence,
+      overallConfidence,
+      interviewComplete,
+      version: nextVersion,
+      updatedAt: nowIso(),
+    };
+  }
+
+  async updateProfileFields(
+    userId: string,
+    updates: Array<{
+      fieldKey: ExecutiveDNAFieldKey;
+      value: unknown;
+      confidence: number;
+      source: ExecutiveDNALearningSource;
+      reason: string;
+    }>,
+  ): Promise<ExecutiveDNAProfile> {
+    if (updates.length === 0) return this.ensureProfile(userId);
+
+    const current = await this.ensureProfile(userId);
+    let nextProfile = { ...current.profile } as ExecutiveDNAProfileData;
+    const confidenceByField = new Map(
+      current.fieldConfidence.map((field) => [field.fieldKey, field] as const),
+    );
+    const learningRows: Record<string, unknown>[] = [];
+
+    for (const update of updates) {
+      const previousValue = (nextProfile as unknown as Record<string, unknown>)[update.fieldKey];
+      const previousConfidence = confidenceByField.get(update.fieldKey)?.confidence ?? 0;
+      const mergedConfidence = Math.min(
+        100,
+        Math.max(previousConfidence, update.confidence, previousConfidence + 5),
+      );
+
+      nextProfile = { ...nextProfile, [update.fieldKey]: update.value };
+      confidenceByField.set(update.fieldKey, {
+        fieldKey: update.fieldKey,
+        confidence: mergedConfidence,
+        value: update.value,
+        updatedAt: nowIso(),
+      });
+
+      learningRows.push({
+        user_id: userId,
+        field_key: update.fieldKey,
+        previous_value: previousValue ?? null,
+        new_value: update.value ?? null,
+        confidence_before: previousConfidence,
+        confidence_after: mergedConfidence,
+        source: update.source,
+        reason: update.reason,
+      });
+    }
+
+    const nextFieldConfidence = EXECUTIVE_DNA_FIELDS.map(
+      (key) =>
+        confidenceByField.get(key) ?? {
+          fieldKey: key,
+          confidence: 0,
+          value: (nextProfile as unknown as Record<string, unknown>)[key],
+          updatedAt: nowIso(),
+        },
+    );
+
+    const overallConfidence = computeOverallConfidence(nextFieldConfidence);
+    const interviewComplete = overallConfidence >= DISCOVERY_CONFIDENCE_TARGET;
+    const nextVersion =
+      interviewComplete && !current.interviewComplete ? current.version + 1 : current.version;
+
+    const { error: confidenceError } = await this.client
+      .from("executive_dna_field_confidence")
+      .upsert(
+        updates.map((update) => ({
+          user_id: userId,
+          field_key: update.fieldKey,
+          confidence: confidenceByField.get(update.fieldKey)?.confidence ?? update.confidence,
+          value: update.value,
+          updated_at: nowIso(),
+        })),
+        { onConflict: "user_id,field_key" },
+      );
+
+    if (confidenceError) throw confidenceError;
+
+    const { error: profileError } = await this.client
+      .from("executive_dna_profiles")
+      .update({
+        profile: nextProfile,
+        overall_confidence: overallConfidence,
+        interview_complete: interviewComplete,
+        version: nextVersion,
+        updated_at: nowIso(),
+      })
+      .eq("user_id", userId);
+
+    if (profileError) throw profileError;
+
+    const { error: learningError } = await this.client
+      .from("executive_dna_learning_events")
+      .insert(learningRows);
+
+    if (learningError) throw learningError;
+
+    if (nextVersion !== current.version) {
+      await this.saveProfileVersion(userId, nextProfile, overallConfidence, updates[0]?.reason ?? "");
     }
 
     return {

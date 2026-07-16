@@ -312,20 +312,25 @@ export class DiscoveryInterviewService {
     );
     const inferred = await this.inferRemainingFields(profile, remainingFields);
 
+    const updates = remainingFields
+      .map((field) => ({
+        fieldKey: field,
+        value: inferred[field] ?? INFERRED_FIELD_DEFAULTS[field],
+      }))
+      .filter((update) => update.value !== undefined)
+      .map((update) => ({
+        ...update,
+        confidence: INFERRED_FIELD_CONFIDENCE,
+        source: "inference" as const,
+        reason: "Inferred from your discovery answers so onboarding stays short.",
+      }));
+
     let updatedProfile = profile;
-    for (const field of remainingFields) {
-      const value = inferred[field] ?? INFERRED_FIELD_DEFAULTS[field];
-      if (value === undefined) continue;
-      updatedProfile = await this.repos.executiveDna.updateProfileField(
-        userId,
-        field,
-        value,
-        INFERRED_FIELD_CONFIDENCE,
-        "inference",
-        "Inferred from your discovery answers so onboarding stays short.",
-      );
+    if (updates.length > 0) {
+      updatedProfile = await this.repos.executiveDna.updateProfileFields(userId, updates);
     }
 
+    if (updatedProfile.interviewComplete) return updatedProfile;
     return this.repos.executiveDna.markInterviewComplete(userId);
   }
 
