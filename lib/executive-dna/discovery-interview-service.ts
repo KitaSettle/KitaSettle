@@ -172,7 +172,10 @@ export class DiscoveryInterviewService {
   constructor(private repos: Repositories) {}
 
   async start(userId: string): Promise<DiscoveryInterviewResponse> {
-    const profile = await this.repos.executiveDna.ensureProfile(userId);
+    let profile = await this.repos.executiveDna.ensureProfile(userId);
+    if (isInterviewComplete(profile) && !profile.interviewComplete) {
+      profile = await this.completeWithInference(userId, profile);
+    }
     let session = await this.repos.executiveDna.getInterviewSession(userId);
 
     if (!session) {
