@@ -39,6 +39,9 @@ export const env = {
 
   openaiApiKey: readServer("OPENAI_API_KEY"),
   openaiModel: readServer("OPENAI_MODEL") ?? "gpt-4o-mini",
+  glmApiKey: readServer("GLM_API_KEY"),
+  glmModel: readServer("GLM_MODEL") ?? "glm-4.6",
+  glmBaseUrl: readServer("GLM_BASE_URL") ?? "https://api.z.ai/api/paas/v4/",
   anthropicApiKey: readServer("ANTHROPIC_API_KEY"),
   googleAiApiKey: readServer("GOOGLE_AI_API_KEY"),
   googleClientId: readServer("GOOGLE_CLIENT_ID"),
@@ -64,6 +67,7 @@ export function assertServerSecretsNotPublic(): void {
   const forbiddenPublicKeys = [
     "SUPABASE_SERVICE_ROLE_KEY",
     "OPENAI_API_KEY",
+    "GLM_API_KEY",
     "GOOGLE_CLIENT_SECRET",
     "ANTHROPIC_API_KEY",
   ];
@@ -98,7 +102,7 @@ export function getDataMode(): DataMode {
 
 const PLACEHOLDER_OPENAI_KEY_MARKERS = ["placeholder", "your-openai-api-key", "sk-your"];
 
-export function isOpenAIConfigured(): boolean {
+function isRealOpenAIConfigured(): boolean {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) return false;
   if (PLACEHOLDER_OPENAI_KEY_MARKERS.some((marker) => apiKey.includes(marker))) return false;
@@ -106,10 +110,29 @@ export function isOpenAIConfigured(): boolean {
   return true;
 }
 
-export type AIProviderMode = "openai" | "mock";
+const PLACEHOLDER_GLM_KEY_MARKERS = ["placeholder", "your-glm-api-key"];
+
+export function isGlmConfigured(): boolean {
+  const apiKey = process.env.GLM_API_KEY?.trim();
+  if (!apiKey) return false;
+  if (PLACEHOLDER_GLM_KEY_MARKERS.some((marker) => apiKey.includes(marker))) return false;
+  return true;
+}
+
+// Historically OpenAI-only; now true whenever any chat-completions-compatible
+// provider (GLM or OpenAI) is configured, since getOpenAIClient() routes to
+// whichever one is actually available. Kept under this name to avoid
+// touching every call site that gates AI calls on it.
+export function isOpenAIConfigured(): boolean {
+  return isGlmConfigured() || isRealOpenAIConfigured();
+}
+
+export type AIProviderMode = "glm" | "openai" | "mock";
 
 export function getAIProviderMode(): AIProviderMode {
-  return isOpenAIConfigured() ? "openai" : "mock";
+  if (isGlmConfigured()) return "glm";
+  if (isRealOpenAIConfigured()) return "openai";
+  return "mock";
 }
 
 export function isGoogleOAuthConfigured(): boolean {
